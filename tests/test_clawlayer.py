@@ -506,7 +506,11 @@ class TestRouterFactory(unittest.TestCase):
         from clawlayer.router_factory import RouterFactory
         
         config = Config.from_yaml()
+        
+        # Mock _init_semantic_router to avoid network calls
         factory = RouterFactory(config)
+        mock_semantic = Mock()
+        factory._init_semantic_router = Mock(return_value=mock_semantic)
         
         routers = factory.build_router_chain()
         self.assertIsInstance(routers, list)
