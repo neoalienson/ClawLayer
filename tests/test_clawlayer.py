@@ -364,6 +364,21 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(remote.type, 'openai')
         self.assertIn('text', remote.models)
     
+    def test_provider_capabilities(self):
+        """Test provider capabilities parsing."""
+        config = Config.from_yaml()
+        
+        local = config.get_provider('local')
+        self.assertIsNotNone(local.capabilities)
+        self.assertIn('max_context', local.capabilities)
+        self.assertIn('tool_use', local.capabilities)
+        self.assertIn('agentic', local.capabilities)
+        
+        remote = config.get_provider('remote')
+        self.assertIsNotNone(remote.capabilities)
+        self.assertEqual(remote.capabilities.get('max_context'), 131072)
+        self.assertTrue(remote.capabilities.get('tool_use'))
+    
     def test_router_config(self):
         """Test router configuration."""
         config = Config.from_yaml()
@@ -382,6 +397,23 @@ class TestConfig(unittest.TestCase):
         
         # Test router options
         self.assertEqual(config.routers['command'].options.get('prefix'), 'run:')
+    
+    def test_router_utterances(self):
+        """Test router utterances from YAML."""
+        config = Config.from_yaml()
+        
+        # Test greeting utterances
+        greeting_utterances = config.routers['greeting'].options.get('utterances', [])
+        self.assertIsInstance(greeting_utterances, list)
+        self.assertGreater(len(greeting_utterances), 0)
+        self.assertIn('hello', greeting_utterances)
+        self.assertIn('hi', greeting_utterances)
+        
+        # Test summarize utterances
+        summarize_utterances = config.routers['summarize'].options.get('utterances', [])
+        self.assertIsInstance(summarize_utterances, list)
+        self.assertGreater(len(summarize_utterances), 0)
+        self.assertIn('summarize', summarize_utterances)
     
     def test_provider_assignments(self):
         """Test default provider assignments."""
@@ -431,6 +463,52 @@ class TestIntegration(unittest.TestCase):
         result = chain.route("what is the weather", {})
         self.assertEqual(result.name, "fallback")
         self.assertTrue(result.should_proxy)
+
+
+class TestRouterFactory(unittest.TestCase):
+    """Test router factory."""
+    
+    def test_create_echo_router(self):
+        """Test creating echo router from config."""
+        from clawlayer.config import Config
+        from clawlayer.router_factory import RouterFactory
+        
+        config = Config.from_yaml()
+        factory = RouterFactory(config)
+        
+        router = factory.create_router('echo')
+        self.assertIsNotNone(router)
+        self.assertIsInstance(router, EchoRouter)
+    
+    def test_create_command_router(self):
+        """Test creating command router with prefix from config."""
+        from clawlayer.config import Config
+        from clawlayer.router_factory import RouterFactory
+        
+        config = Config.from_yaml()
+        factory = RouterFactory(config)
+        
+        router = factory.create_router('command')
+        self.assertIsNotNone(router)
+        self.assertIsInstance(router, CommandRouter)
+        self.assertEqual(router.prefix, 'run:')
+    
+    def test_build_router_chain(self):
+        """Test building complete router chain from config."""
+        from clawlayer.config import Config
+        from clawlayer.router_factory import RouterFactory
+        
+        config = Config.from_yaml()
+        factory = RouterFactory(config)
+        
+        routers = factory.build_router_chain()
+        self.assertIsInstance(routers, list)
+        self.assertGreater(len(routers), 0)
+        
+        # Check router order matches config
+        router_types = [type(r).__name__ for r in routers]
+        self.assertIn('EchoRouter', router_types)
+        self.assertIn('CommandRouter', router_types)
 
 
 if __name__ == "__main__":

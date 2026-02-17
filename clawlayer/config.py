@@ -15,6 +15,11 @@ class ProviderConfig:
     url: str
     type: str
     models: Dict[str, str]
+    capabilities: Dict[str, Any] = None
+    
+    def __post_init__(self):
+        if self.capabilities is None:
+            self.capabilities = {}
 
 
 @dataclass
@@ -102,7 +107,8 @@ class Config:
                 name=name,
                 url=pdata.get('url', 'http://localhost:11434'),
                 type=pdata.get('type', 'ollama'),
-                models=pdata.get('models', {})
+                models=pdata.get('models', {}),
+                capabilities=pdata.get('capabilities', {})
             )
         
         # Parse defaults

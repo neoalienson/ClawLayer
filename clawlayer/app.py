@@ -6,10 +6,8 @@ import sys
 import json
 
 from clawlayer.config import Config, RouterConfig, ProviderConfig
-from clawlayer.routers import (
-    RouterChain, EchoRouter, CommandRouter, 
-    GreetingRouter, SummarizeRouter
-)
+from clawlayer.routers import RouterChain
+from clawlayer.router_factory import RouterFactory
 from clawlayer.handler import MessageHandler, ResponseGenerator
 from clawlayer.proxy import LLMProxy
 
@@ -111,74 +109,9 @@ def create_app(verbose: int = 0) -> ClawLayerApp:
         print(f"Embedding provider: {config.embedding_provider} ({config.get_embedding_url()})", file=sys.stderr)
         print(f"Text provider: {config.text_provider} ({config.get_text_url()})", file=sys.stderr)
     
-    # Initialize semantic router if needed
-    semantic_router = None
-    semantic_enabled = any(
-        config.routers[name].enabled 
-        for name in config.semantic_router_priority
-    )
-    
-    if semantic_enabled:
-        try:
-            from semantic_router import Route, SemanticRouter
-            from semantic_router.encoders import OllamaEncoder
-            
-            # Use embedding provider
-            embed_url = config.get_embedding_url()
-            embed_model = config.get_embedding_model()
-            
-            encoder = OllamaEncoder(name=embed_model, base_url=embed_url)
-            
-            routes = []
-            if config.routers['greeting'].enabled:
-                routes.append(Route(
-                    name="greeting",
-                    utterances=["hello", "hi", "hey", "good morning", "good afternoon", "greetings"]
-                ))
-            
-            if config.routers['summarize'].enabled:
-                routes.append(Route(
-                    name="summarize",
-                    utterances=["summarize the conversation", "create a summary", 
-                               "checkpoint summary", "structured context checkpoint", "summarize"]
-                ))
-            
-            if routes:
-                semantic_router = SemanticRouter(
-                    encoder=encoder, 
-                    routes=routes,
-                    auto_sync="local"
-                )
-        except ImportError:
-            if verbose:
-                print("Warning: semantic-router not installed, semantic routing disabled", file=sys.stderr)
-    
-    # Build router chain: fast routers first, then semantic routers
-    router_map = {
-        'echo': lambda: EchoRouter(),
-        'command': lambda: CommandRouter(config.routers['command'].options.get('prefix', 'run:')),
-        'greeting': lambda: GreetingRouter(semantic_router),
-        'summarize': lambda: SummarizeRouter(semantic_router)
-    }
-    
-    routers = []
-    
-    # Add fast routers
-    for router_name in config.fast_router_priority:
-        if router_name in router_map and config.routers.get(router_name, RouterConfig(True, {})).enabled:
-            routers.append(router_map[router_name]())
-    
-    # Add semantic routers
-    for router_name in config.semantic_router_priority:
-        if router_name in router_map and config.routers.get(router_name, RouterConfig(True, {})).enabled:
-            routers.append(router_map[router_name]())
-    
-    if verbose:
-        fast_enabled = [name for name in config.fast_router_priority if config.routers.get(name, RouterConfig(True, {})).enabled]
-        semantic_enabled = [name for name in config.semantic_router_priority if config.routers.get(name, RouterConfig(True, {})).enabled]
-        print(f"Fast routers: {', '.join(fast_enabled)}", file=sys.stderr)
-        print(f"Semantic routers: {', '.join(semantic_enabled)}", file=sys.stderr)
-    
+    # Build router chain from config using factory
+    factory = RouterFactory(config, verbose)
+    routers = factory.build_router_chain()
     router_chain = RouterChain(routers)
     
     # Use text provider for LLM proxy

@@ -8,14 +8,22 @@ providers:
     type: ollama
     models:
       embed: nomic-embed-text
+    capabilities:
+      max_context: 8192
+      tool_use: false
+      agentic: false
   
   # Remote provider for text generation
   remote:
     url: http://192.168.1.100:11434/v1/chat/completions
-    type: openai  # openai-compatible API
+    type: openai
     models:
       text: llama3.2
       vision: llava:latest
+    capabilities:
+      max_context: 131072
+      tool_use: true
+      agentic: false
 
 # Default provider assignments
 defaults:
@@ -42,7 +50,7 @@ routers:
       enabled: true
       prefix: "run:"
   
-  # Semantic routers (embedding-based) - checked after fast routers
+  # Semantic routers (embedding) - checked after fast
   semantic:
     priority:
       - greeting
@@ -50,8 +58,21 @@ routers:
     
     greeting:
       enabled: true
-      provider: local  # Use local provider for embeddings
+      provider: local
+      utterances:
+        - "hello"
+        - "hi"
+        - "hey"
+        - "good morning"
+        - "good afternoon"
+        - "greetings"
     
     summarize:
       enabled: true
-      provider: local  # Use local provider for embeddings
+      provider: local
+      utterances:
+        - "summarize the conversation"
+        - "create a summary"
+        - "checkpoint summary"
+        - "structured context checkpoint"
+        - "summarize"
