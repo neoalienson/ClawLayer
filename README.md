@@ -495,7 +495,8 @@ clawlayer/
     └── router_chain.py          # RouterChain - router management
 
 tests/
-└── test_clawlayer.py    # Comprehensive unit tests (38 tests)
+├── test_clawlayer.py           # Core functionality tests
+└── test_cascade_edge_cases.py  # Multi-stage cascade and edge case tests
 
 config.yml               # Main configuration
 config.example.yml       # Example configuration
@@ -508,13 +509,13 @@ All core components have comprehensive unit tests:
 
 ```bash
 # Run all tests
+python -m unittest discover tests -v
+
+# Run specific test file
 python -m unittest tests.test_clawlayer -v
 
 # Run specific test class
 python -m unittest tests.test_clawlayer.TestCommandRouter -v
-
-# Run specific test
-python -m unittest tests.test_clawlayer.TestCommandRouter.test_detects_run_prefix -v
 ```
 
 ## Related Projects
