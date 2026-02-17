@@ -1,17 +1,21 @@
 # ClawLayer
 
-The intelligent layer for **OpenClaw** AI agents - optimizing performance through smart routing, caching, and cost management.
+A **lightweight, highly customizable semantic routing layer** for **OpenClaw** AI agents - optimizing performance through intelligent request classification before expensive LLM inference.
 
 ## Purpose
 
-ClawLayer sits between OpenClaw agents and LLMs, providing an intelligent routing layer that intercepts common patterns before they reach expensive inference:
+ClawLayer provides a **simple YAML-driven configuration** to route OpenClaw agent requests intelligently:
 
-- **Instant responses** for greetings and routine queries
-- **Zero-latency tool calls** for command execution patterns
-- **Echo optimization** for tool results that don't need LLM processing
+- **Instant responses** for greetings and routine queries via semantic matching
+- **Zero-latency tool calls** for command execution patterns via regex
+- **Multi-stage cascade** from fast/cheap to accurate/expensive models
 - **Transparent fallback** to full LLM inference when needed
 
-By routing predictable interactions through static responses and intelligent caching, ClawLayer delivers instant responses for common operations while maintaining full LLM capabilities for complex reasoning tasks.
+**Key Benefits:**
+- ⚡ **Lightweight**: Minimal dependencies, simple architecture
+- 🎯 **Easy Configuration**: Everything in YAML - no code changes needed
+- 🔧 **Highly Customizable**: Mix embedding and LLM stages, adjust thresholds, add custom routers
+- 💰 **Cost Optimized**: Route 80% of requests through cheap models, 15% through mid-tier, 5% to expensive LLM
 
 ### System Architecture
 
@@ -31,8 +35,8 @@ flowchart TB
     end
     
     subgraph Cascade["Multi-Stage Cascade"]
-        Embed1[Stage 1: Local Embedding<br/>nomic-embed-text]
-        Embed2[Stage 2: Remote Embedding<br/>nomic-embed-text]
+        Stage1[Stage 1: Fast/Cheap<br/>Local Embedding]
+        Stage2[Stage 2: Accurate/Expensive<br/>Remote Embedding or LLM]
     end
     
     LLM[🔴 LLM Fallback]
@@ -44,16 +48,16 @@ flowchart TB
     Cmd -->|Match| CL
     Cmd -->|No Match| Semantic
     
-    Greet -->|Query| Embed1
-    Embed1 -->|confidence ≥ threshold| Greet
-    Embed1 -->|confidence < threshold| Embed2
-    Embed2 -->|confidence ≥ threshold| Greet
-    Embed2 -->|confidence < threshold| Greet
+    Greet -->|Query| Stage1
+    Stage1 -->|confidence ≥ threshold| Greet
+    Stage1 -->|confidence < threshold| Stage2
+    Stage2 -->|confidence ≥ threshold| Greet
+    Stage2 -->|confidence < threshold| Greet
     Greet -->|Match| CL
     Greet -->|No Match| Sum
     
-    Sum -->|Query| Embed1
-    Embed1 -->|Match result| Sum
+    Sum -->|Query| Stage1
+    Stage1 -->|Match result| Sum
     Sum -->|Match| CL
     Sum -->|No Match| LLM
     
@@ -67,24 +71,33 @@ flowchart TB
     style Cmd fill:#90EE90
     style Greet fill:#FFD700
     style Sum fill:#FFD700
-    style Embed1 fill:#87CEEB
-    style Embed2 fill:#87CEEB
+    style Stage1 fill:#90EE90
+    style Stage2 fill:#FFA500
     style LLM fill:#FFB6C1
 ```
 
-**Legend**: 🟢 Fast (regex/logic) | 🟡 Medium (semantic) | 🔵 Embedding model | 🔴 Slow (LLM inference)
+**Legend**: 🟢 Fast/Cheap | 🟠 Accurate/Expensive | 🔴 Full LLM Inference
 
-**Flow**: Fast Routers → Semantic Routers (with cascade) → LLM Fallback. Semantic routers use embedding models only, never LLMs.
+**Flow**: Fast Routers → Semantic Routers (with cascade) → LLM Fallback. Cascade tries cheap models first, escalates to expensive models only when needed.
 
 ## Features
 
+### Core Capabilities
 - **Multi-Stage Cascade Routing**: Cost-optimized semantic matching with confidence-based fallback
-- **Semantic Routing**: Embedding-based matching for greetings and summaries
-- **Regex Routing**: Fast pattern matching for commands (run:)
-- **Echo Optimization**: Bypasses LLM for tool execution results
-- **Static Responses**: Instant responses without LLM inference
-- **LLM Fallback**: Forwards unmatched requests to Ollama
+- **YAML-Driven Configuration**: No code changes - configure everything via config.yml
+- **Flexible Provider System**: Mix local/remote, embedding/LLM, Ollama/OpenAI providers
+- **Semantic Routing**: Embedding-based matching for greetings, summaries, and custom patterns
+- **Fast Regex Routing**: Pattern matching for commands and tool execution
 - **Streaming Support**: Full SSE streaming for both static and proxied responses
+
+### Why ClawLayer?
+- **Lightweight**: ~500 lines of core code, minimal dependencies
+- **Easy to Configure**: Add new routes by editing YAML, no Python required
+- **Highly Customizable**: 
+  - Adjust confidence thresholds per stage
+  - Mix embedding and LLM providers in cascade
+  - Add custom routers with simple Python interface
+  - Configure router priority and enable/disable per route
 
 ## Router Priority
 
@@ -154,81 +167,72 @@ sequenceDiagram
     LLM-->>Client: Processed output (4-10s total)
 ```
 
-## Setup
+## Quick Start
 
+### 1. Install
 ```bash
-# Install dependencies
 pip install flask requests python-dotenv pyyaml semantic-router
-
-# Copy example config
-cp config.example.yml config.yml
-# Edit config.yml with your settings
 ```
+
+### 2. Configure
+```bash
+cp config.example.yml config.yml
+# Edit config.yml - add your providers and routes
+```
+
+### 3. Run
+```bash
+python run.py -v
+```
+
+That's it! ClawLayer is now routing requests intelligently.
 
 ## Configuration
 
-ClawLayer supports **multiple LLM providers** for flexible deployment.
+ClawLayer is **100% YAML-driven** - no code changes needed for most customizations.
 
-### config.yml
+### Basic Configuration
 
+**Step 1: Define Providers**
 ```yaml
-# Define multiple providers
 providers:
-  # Local Ollama for embeddings
   local:
     url: http://localhost:11434
     type: ollama
+    provider_type: embedding  # Fast, cheap
     models:
       embed: nomic-embed-text
   
-  # Remote Ollama for text generation
   remote:
     url: http://192.168.1.100:11434/v1/chat/completions
     type: openai
+    provider_type: llm  # Accurate, expensive
     models:
       text: llama3.2
-      vision: llava:latest
-  
-  # OpenAI for production
-  openai:
-    url: https://api.openai.com/v1/chat/completions
-    type: openai
-    models:
-      text: gpt-4
-      embed: text-embedding-3-small
-
-# Assign providers to tasks
-defaults:
-  embedding_provider: local   # Fast local embeddings
-  text_provider: remote       # Remote text generation
-  vision_provider: openai     # OpenAI for vision
-
-# Router configuration
-routers:
-  # Priority order (first match wins, then returns immediately)
-  priority: [echo, command, greeting, summarize]
-  
-  # EchoRouter - Fast logic check
-  echo:
-    enabled: true
-  
-  # CommandRouter - Fast regex check  
-  command:
-    enabled: true
-    prefix: "run:"
-  
-  # GreetingRouter - Uses semantic matching internally
-  greeting:
-    enabled: true
-    use_semantic: true
-    provider: local  # Override to use specific provider
-  
-  # SummarizeRouter - Uses semantic matching internally
-  summarize:
-    enabled: true
-    use_semantic: true
-    provider: local
 ```
+
+**Step 2: Configure Routes**
+```yaml
+routers:
+  semantic:
+    greeting:
+      enabled: true
+      stages:
+        - provider: local      # Try cheap embedding first
+          model: nomic-embed-text
+          threshold: 0.75
+        - provider: remote     # Fallback to LLM if needed
+          model: llama3.2
+          threshold: 0.6
+      utterances:
+        - "hello"
+        - "hi"
+```
+
+**That's it!** ClawLayer will:
+1. Try local embedding (fast/cheap) with 0.75 threshold
+2. If confidence < 0.75, try remote LLM (accurate/expensive)
+3. If no match, forward to full LLM inference
 
 ### Environment Variables
 
@@ -263,73 +267,120 @@ OpenAI-compatible endpoints:
 
 Supports both streaming and non-streaming modes.
 
-## Extending ClawLayer
+## Customization Examples
 
-### Multi-Provider Use Cases
+### Example 1: Add a New Route (No Code!)
 
-**Hybrid deployment - local embeddings, remote inference:**
 ```yaml
-providers:
-  local:
-    url: http://localhost:11434
-    models:
-      embed: nomic-embed-text
-  
-  remote:
-    url: http://gpu-server:11434/v1/chat/completions
-    models:
-      text: llama3.2-70b
-
-defaults:
-  embedding_provider: local   # Fast local embeddings
-  text_provider: remote       # Powerful remote model
+routers:
+  semantic:
+    farewell:  # New route!
+      enabled: true
+      stages:
+        - provider: local
+          model: nomic-embed-text
+          threshold: 0.7
+      utterances:
+        - "goodbye"
+        - "bye"
+        - "see you"
 ```
 
-**Multi-cloud setup:**
+### Example 2: Adjust Thresholds for Cost/Accuracy Tradeoff
+
+```yaml
+# More aggressive (cheaper, less accurate)
+stages:
+  - provider: local
+    threshold: 0.6  # Lower threshold = more matches at stage 1
+
+# More conservative (expensive, more accurate)  
+stages:
+  - provider: local
+    threshold: 0.9  # Higher threshold = more cascade to stage 2
+```
+
+### Example 3: Multi-Cloud Setup
+
 ```yaml
 providers:
-  ollama:
+  local_ollama:
+    provider_type: embedding
     url: http://localhost:11434
-    models:
-      embed: nomic-embed-text
-      text: llama3.2
+  
+  aws_bedrock:
+    provider_type: llm
+    url: https://bedrock.us-east-1.amazonaws.com
   
   openai:
+    provider_type: llm
     url: https://api.openai.com/v1/chat/completions
-    models:
-      text: gpt-4
-      vision: gpt-4-vision-preview
 
-defaults:
-  embedding_provider: ollama  # Local embeddings
-  text_provider: openai       # OpenAI for complex queries
-  vision_provider: openai     # OpenAI for vision
+routers:
+  semantic:
+    greeting:
+      stages:
+        - provider: local_ollama   # Free local
+          threshold: 0.8
+        - provider: aws_bedrock    # Mid-tier cloud
+          threshold: 0.7
+        - provider: openai         # Premium fallback
+          threshold: 0.6
+```
+
+### Example 4: Add Custom Router (Minimal Code)
+
+```python
+# custom_router.py
+from clawlayer.routers import Router, RouteResult
+
+class CustomRouter(Router):
+    def route(self, message: str, context: dict):
+        if "custom_pattern" in message:
+            return RouteResult(name="custom", content="Custom response")
+        return None
+```
+
+Then register in config:
+```yaml
+routers:
+  fast:
+    priority:
+      - custom  # Add your router
+      - echo
+      - command
 ```
 
 ### Customize Router Behavior
 
-Edit `config.yml` to enable/disable routers or change priority within each category:
-
+**Change router priority:**
 ```yaml
 routers:
-  # Fast routers - checked first
   fast:
     priority:
-      - command  # Check commands before echo
+      - command  # Check commands first
       - echo
-    
-    command:
-      enabled: true
-      prefix: "exec:"  # Change prefix
   
-  # Semantic routers - checked after fast routers
   semantic:
     priority:
-      - summarize  # Check summaries before greetings
+      - farewell  # Check farewells before greetings
       - greeting
-    
+```
+
+**Disable routes:**
+```yaml
+routers:
+  semantic:
     greeting:
       enabled: false  # Disable greeting router
+```
+
+**Change command prefix:**
+```yaml
+routers:
+  fast:
+    command:
+      prefix: "exec:"  # Use 'exec:' instead of 'run:'
 ```
 
 ### Multi-Stage Cascade Configuration
@@ -337,16 +388,33 @@ routers:
 Semantic routers support **multi-stage cascading** to optimize cost and accuracy. Each stage tries a different embedding provider with its own confidence threshold:
 
 ```yaml
+# Define providers with their types
+providers:
+  local:
+    url: http://localhost:11434
+    type: ollama
+    provider_type: embedding  # This is an embedding provider
+    models:
+      embed: nomic-embed-text
+  
+  remote:
+    url: http://192.168.1.100:11434/v1/chat/completions
+    type: openai
+    provider_type: llm  # This is an LLM provider
+    models:
+      text: llama3.2
+
+# Use providers in cascade stages
 semantic:
   greeting:
     enabled: true
     stages:
-      - provider: local           # Stage 1: Fast local embedding
+      - provider: local           # Stage 1: Uses embedding (from provider_type)
         model: nomic-embed-text
-        threshold: 0.75          # Require 75% similarity
-      - provider: remote          # Stage 2: Fallback if confidence < 0.75
-        model: nomic-embed-text
-        threshold: 0.6           # Accept 60% similarity
+        threshold: 0.75
+      - provider: remote          # Stage 2: Uses LLM (from provider_type)
+        model: llama3.2
+        threshold: 0.6
     utterances:
       - "hello"
       - "hi"
@@ -355,26 +423,33 @@ semantic:
 
 **How it works:**
 
-1. **Stage 1** (local): Query is embedded and compared to utterances using cosine similarity
+1. **Stage 1** (fast/cheap embedding): Local embedding model with high threshold
    - If similarity ≥ 0.75 → Match! Return response immediately
    - If similarity < 0.75 → Continue to Stage 2
 
-2. **Stage 2** (remote): Query is embedded again with different provider
-   - If similarity ≥ 0.6 → Match! Return response
-   - If similarity < 0.6 → No match, cascade to LLM
+2. **Stage 2** (accurate/expensive LLM): LLM-based classification
+   - LLM evaluates if message matches the route based on example utterances
+   - If confidence ≥ 0.6 → Match! Return response
+   - If confidence < 0.6 → No match, cascade to LLM fallback
 
 **Example scenarios:**
 
 ```
-"hello" → Stage 1: similarity 0.92 ≥ 0.75 ✓ → Return (1 embedding call)
-"hey what's up" → Stage 1: 0.68 < 0.75 → Stage 2: 0.71 ≥ 0.6 ✓ → Return (2 embedding calls)
-"weather today" → Stage 1: 0.3 < 0.75 → Stage 2: 0.4 < 0.6 → LLM fallback (2 embeddings + 1 LLM)
+"hello" → Stage 1: similarity 0.92 ≥ 0.75 ✓ → Return (fast/cheap)
+"hey what's up" → Stage 1: 0.68 < 0.75 → Stage 2: 0.71 ≥ 0.6 ✓ → Return (accurate/expensive)
+"weather today" → Stage 1: 0.3 < 0.75 → Stage 2: 0.4 < 0.6 → LLM fallback (full inference)
 ```
 
 **Benefits:**
 - **Cost optimization**: 80% of queries match at Stage 1 (cheap local embeddings)
-- **Accuracy**: 15% cascade to Stage 2 (better model for edge cases)
-- **Flexibility**: Only 5% reach expensive LLM inference
+- **Accuracy**: 15% cascade to Stage 2 (LLM for complex/ambiguous cases)
+- **Flexibility**: Only 5% reach expensive LLM fallback for full conversation
+
+**Stage types:**
+- `provider_type: embedding` - Provider uses embedding model for vector similarity (fast, cheap)
+- `provider_type: llm` - Provider uses LLM to classify if message matches route (accurate, expensive)
+
+The stage type is determined by the provider's `provider_type` field, not specified in the router configuration.
 
 **Confidence scores** are cosine similarity values (0.0 to 1.0) calculated by the `semantic-router` library:
 - 1.0 = identical vectors
@@ -386,29 +461,19 @@ See [docs/CASCADE.md](docs/CASCADE.md) for advanced patterns.
 
 ### Add Custom Router
 
-Add a new router by implementing the Router interface:
+For advanced use cases, implement the Router interface:
 
 ```python
-from clawlayer.router import Router, RouteResult
+from clawlayer.routers import Router, RouteResult
 
 class CustomRouter(Router):
-    def route(self, message: str, context: dict) -> Optional[RouteResult]:
+    def route(self, message: str, context: dict):
         if "custom_pattern" in message:
             return RouteResult(name="custom", content="Custom response")
         return None
 ```
 
-Then add it to the router chain in `app.py`:
-
-```python
-routers = [
-    EchoRouter(),
-    CommandRouter(),
-    CustomRouter(),  # Add your router
-    GreetingRouter(),
-    SummarizeRouter()
-]
-```
+Register in `router_factory.py` or configure via YAML (see Example 4 above).
 
 ### File Structure
 
@@ -419,16 +484,18 @@ clawlayer/
 ├── config.py            # Configuration management
 ├── handler.py           # Message handling & response generation
 ├── proxy.py             # LLM proxy for forwarding requests
+├── router_factory.py    # Factory for building routers from YAML config
 └── routers/
-    ├── __init__.py      # Base classes (Router, RouteResult) + exports
-    ├── echo_router.py   # EchoRouter - tool result detection
-    ├── command_router.py # CommandRouter - command prefix detection
-    ├── greeting_router.py # GreetingRouter - semantic greeting matching
-    ├── summarize_router.py # SummarizeRouter - semantic summary matching
-    └── router_chain.py  # RouterChain - router management
+    ├── __init__.py              # Base classes (Router, RouteResult) + exports
+    ├── semantic_base_router.py  # Base class for multi-stage semantic routers
+    ├── echo_router.py           # EchoRouter - tool result detection
+    ├── command_router.py        # CommandRouter - command prefix detection
+    ├── greeting_router.py       # GreetingRouter - semantic greeting matching
+    ├── summarize_router.py      # SummarizeRouter - semantic summary matching
+    └── router_chain.py          # RouterChain - router management
 
 tests/
-└── test_clawlayer.py    # Comprehensive unit tests
+└── test_clawlayer.py    # Comprehensive unit tests (38 tests)
 
 config.yml               # Main configuration
 config.example.yml       # Example configuration

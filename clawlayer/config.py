@@ -14,6 +14,7 @@ class ProviderConfig:
     name: str
     url: str
     type: str
+    provider_type: str  # 'embedding' or 'llm'
     models: Dict[str, str]
     capabilities: Dict[str, Any] = None
     
@@ -107,6 +108,7 @@ class Config:
                 name=name,
                 url=pdata.get('url', 'http://localhost:11434'),
                 type=pdata.get('type', 'ollama'),
+                provider_type=pdata.get('provider_type', 'embedding'),  # Default to embedding
                 models=pdata.get('models', {}),
                 capabilities=pdata.get('capabilities', {})
             )

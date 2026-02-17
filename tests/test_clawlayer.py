@@ -24,8 +24,8 @@ class TestGreetingRouter(unittest.TestCase):
     def setUp(self):
         # Mock semantic router with cascade structure
         self.mock_semantic = Mock()
-        # Pass as list of (router, threshold) tuples
-        self.router = GreetingRouter([(self.mock_semantic, 0.5)])
+        # Pass as list of (matcher, threshold, type) tuples
+        self.router = GreetingRouter([(self.mock_semantic, 0.5, 'embedding')])
     
     def test_matches_hello(self):
         mock_result = Mock()
@@ -156,8 +156,8 @@ class TestSummarizeRouter(unittest.TestCase):
     
     def setUp(self):
         self.mock_semantic = Mock()
-        # Pass as list of (router, threshold) tuples
-        self.router = SummarizeRouter([(self.mock_semantic, 0.5)])
+        # Pass as list of (matcher, threshold, type) tuples
+        self.router = SummarizeRouter([(self.mock_semantic, 0.5, 'embedding')])
     
     def test_matches_summarize(self):
         mock_result = Mock()
@@ -452,8 +452,8 @@ class TestIntegration(unittest.TestCase):
         routers = [
             EchoRouter(),
             CommandRouter(),
-            GreetingRouter([(mock_semantic, 0.5)]),
-            SummarizeRouter([(mock_semantic, 0.5)])
+            GreetingRouter([(mock_semantic, 0.5, 'embedding')]),
+            SummarizeRouter([(mock_semantic, 0.5, 'embedding')])
         ]
         chain = RouterChain(routers)
         

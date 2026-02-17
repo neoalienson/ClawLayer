@@ -1,6 +1,6 @@
 """Router factory for building routers from configuration."""
 
-from typing import List, Optional, Tuple, Any
+from typing import List, Optional, Tuple, Any, Dict
 from clawlayer.routers import (
     Router, EchoRouter, CommandRouter,
     GreetingRouter, SummarizeRouter
@@ -66,14 +66,38 @@ class RouterFactory:
         
         return None
     
-    def _build_cascade_stages(self, router_config) -> List[Tuple[Any, float]]:
+    def _init_llm_matcher(self, provider_name: str, model_name: str, utterances: List[str], route_name: str) -> Optional[Dict]:
+        """Initialize LLM-based matcher for a stage.
+        
+        Args:
+            provider_name: Provider name from config
+            model_name: Model name to use
+            utterances: Example utterances for this route
+            route_name: Name of the route (e.g., 'greeting')
+            
+        Returns:
+            Dict with LLM matcher config or None
+        """
+        provider = self.config.get_provider(provider_name)
+        if not provider:
+            return None
+        
+        return {
+            'type': 'llm',
+            'provider': provider,
+            'model': model_name,
+            'utterances': utterances,
+            'route_name': route_name
+        }
+    
+    def _build_cascade_stages(self, router_config) -> List[Tuple[Any, float, str]]:
         """Build cascade stages from router config.
         
         Args:
             router_config: RouterConfig with stages configuration
             
         Returns:
-            List of (semantic_router, threshold) tuples
+            List of (matcher, threshold, type) tuples where type is 'embedding' or 'llm'
         """
         stages = router_config.options.get('stages', [])
         if not stages:
@@ -81,20 +105,44 @@ class RouterFactory:
             provider = router_config.options.get('provider', self.config.embedding_provider)
             model = self.config.get_embedding_model()
             semantic_router = self._init_semantic_router(provider, model)
-            return [(semantic_router, 0.0)] if semantic_router else []
+            return [(semantic_router, 0.0, 'embedding')] if semantic_router else []
         
+        utterances = router_config.options.get('utterances', [])
         cascade_stages = []
+        
         for stage in stages:
             provider_name = stage.get('provider', self.config.embedding_provider)
             model_name = stage.get('model', self.config.get_embedding_model())
             threshold = stage.get('threshold', 0.0)
             
-            semantic_router = self._init_semantic_router(provider_name, model_name)
-            if semantic_router:
-                cascade_stages.append((semantic_router, threshold))
-                if self.verbose:
-                    print(f"  Stage {len(cascade_stages)}: {provider_name}/{model_name} (threshold: {threshold})", 
-                          file=__import__('sys').stderr)
+            # Get provider type from provider config
+            provider = self.config.get_provider(provider_name)
+            if not provider:
+                continue
+            
+            stage_type = provider.provider_type  # Get from provider definition
+            
+            if stage_type == 'llm':
+                # Get route name from router config
+                route_name = None
+                for name in self.config.semantic_router_priority:
+                    if self.config.routers.get(name) == router_config:
+                        route_name = name
+                        break
+                
+                llm_matcher = self._init_llm_matcher(provider_name, model_name, utterances, route_name or 'unknown')
+                if llm_matcher:
+                    cascade_stages.append((llm_matcher, threshold, 'llm'))
+                    if self.verbose:
+                        print(f"  Stage {len(cascade_stages)}: {provider_name}/{model_name} (LLM, threshold: {threshold})", 
+                              file=__import__('sys').stderr)
+            else:
+                semantic_router = self._init_semantic_router(provider_name, model_name)
+                if semantic_router:
+                    cascade_stages.append((semantic_router, threshold, 'embedding'))
+                    if self.verbose:
+                        print(f"  Stage {len(cascade_stages)}: {provider_name}/{model_name} (embedding, threshold: {threshold})", 
+                              file=__import__('sys').stderr)
         
         return cascade_stages
     

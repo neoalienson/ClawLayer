@@ -6,6 +6,7 @@ providers:
   local:
     url: http://localhost:11434
     type: ollama
+    provider_type: embedding  # This provider is for embeddings
     models:
       embed: nomic-embed-text
     capabilities:
@@ -17,6 +18,7 @@ providers:
   remote:
     url: http://192.168.1.100:11434/v1/chat/completions
     type: openai
+    provider_type: llm  # This provider is for LLM inference
     models:
       text: llama3.2
       vision: llava:latest
@@ -64,8 +66,8 @@ routers:
           model: nomic-embed-text
           threshold: 0.75  # High confidence required for stage 1
         - provider: remote  # Cascade to stage 2 if confidence < 0.75
-          model: nomic-embed-text
-          threshold: 0.6   # Lower threshold for stage 2
+          model: llama3.2
+          threshold: 0.6    # Lower threshold for stage 2
       utterances:
         - "hello"
         - "hi"
