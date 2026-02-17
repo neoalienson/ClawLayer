@@ -356,13 +356,23 @@ routers = [
 clawlayer/
 ├── __init__.py          # Package exports
 ├── app.py               # Flask application & dependency injection
-├── router.py            # Router implementations (greeting, command, echo, etc.)
+├── config.py            # Configuration management
 ├── handler.py           # Message handling & response generation
 ├── proxy.py             # LLM proxy for forwarding requests
-└── config.py            # Configuration management
+└── routers/
+    ├── __init__.py      # Base classes (Router, RouteResult) + exports
+    ├── echo_router.py   # EchoRouter - tool result detection
+    ├── command_router.py # CommandRouter - command prefix detection
+    ├── greeting_router.py # GreetingRouter - semantic greeting matching
+    ├── summarize_router.py # SummarizeRouter - semantic summary matching
+    └── router_chain.py  # RouterChain - router management
 
 tests/
-└── test_clawlayer.py    # Comprehensive unit tests (30 tests)
+└── test_clawlayer.py    # Comprehensive unit tests
+
+config.yml               # Main configuration
+config.example.yml       # Example configuration
+run.py                   # Entry point
 ```
 
 ### Design Principles
