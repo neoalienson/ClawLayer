@@ -26,6 +26,7 @@ flowchart TB
     end
     
     subgraph Semantic["🧠 Semantic Routers (embedding)"]
+        SR[SemanticRouter<br/>semantic-router lib]
         Greet[GreetingRouter]
         Sum[SummarizeRouter]
     end
@@ -40,13 +41,15 @@ flowchart TB
     Cmd -->|Match| Agent
     Cmd -->|No Match| Semantic
     
-    Greet -->|Encode query| Embed
-    Embed -->|Vector similarity| Greet
+    Greet -->|Query| SR
+    SR -->|Encode| Embed
+    Embed -->|Vector| SR
+    SR -->|Match result| Greet
     Greet -->|Match| Agent
     Greet -->|No Match| Sum
     
-    Sum -->|Encode query| Embed
-    Embed -->|Vector similarity| Sum
+    Sum -->|Query| SR
+    SR -->|Match result| Sum
     Sum -->|Match| Agent
     Sum -->|No Match| LLM
     
@@ -56,13 +59,14 @@ flowchart TB
     style Semantic fill:#FFF9C4
     style Echo fill:#90EE90
     style Cmd fill:#90EE90
+    style SR fill:#B0E0E6
     style Greet fill:#FFD700
     style Sum fill:#FFD700
     style Embed fill:#87CEEB
     style LLM fill:#FFB6C1
 ```
 
-**Legend**: 🟢 Fast (regex/logic) | 🟡 Medium (semantic embedding) | 🔵 Embedding model | 🔴 Slow (LLM inference)
+**Legend**: 🟢 Fast (regex/logic) | 🟡 Medium (semantic) | 🔵 Embedding model | 🔴 Slow (LLM inference)
 
 ## Features
 
