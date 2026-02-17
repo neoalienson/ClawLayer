@@ -22,13 +22,15 @@ class TestGreetingRouter(unittest.TestCase):
     """Test greeting router."""
     
     def setUp(self):
-        # Mock semantic router
+        # Mock semantic router with cascade structure
         self.mock_semantic = Mock()
-        self.router = GreetingRouter(self.mock_semantic)
+        # Pass as list of (router, threshold) tuples
+        self.router = GreetingRouter([(self.mock_semantic, 0.5)])
     
     def test_matches_hello(self):
         mock_result = Mock()
         mock_result.name = "greeting"
+        mock_result.score = 0.9
         self.mock_semantic.return_value = mock_result
         
         result = self.router.route("hello", {})
@@ -39,6 +41,7 @@ class TestGreetingRouter(unittest.TestCase):
     def test_matches_hi(self):
         mock_result = Mock()
         mock_result.name = "greeting"
+        mock_result.score = 0.8
         self.mock_semantic.return_value = mock_result
         
         result = self.router.route("hi", {})
@@ -54,7 +57,7 @@ class TestGreetingRouter(unittest.TestCase):
         self.assertIsNone(result)
     
     def test_no_semantic_router(self):
-        router = GreetingRouter(None)
+        router = GreetingRouter([])
         result = router.route("hello", {})
         self.assertIsNone(result)
 
@@ -153,11 +156,13 @@ class TestSummarizeRouter(unittest.TestCase):
     
     def setUp(self):
         self.mock_semantic = Mock()
-        self.router = SummarizeRouter(self.mock_semantic)
+        # Pass as list of (router, threshold) tuples
+        self.router = SummarizeRouter([(self.mock_semantic, 0.5)])
     
     def test_matches_summarize(self):
         mock_result = Mock()
         mock_result.name = "summarize"
+        mock_result.score = 0.9
         self.mock_semantic.return_value = mock_result
         
         result = self.router.route("summarize the conversation", {})
@@ -168,6 +173,7 @@ class TestSummarizeRouter(unittest.TestCase):
     def test_matches_checkpoint(self):
         mock_result = Mock()
         mock_result.name = "summarize"
+        mock_result.score = 0.8
         self.mock_semantic.return_value = mock_result
         
         result = self.router.route("checkpoint", {})
@@ -440,13 +446,14 @@ class TestIntegration(unittest.TestCase):
         mock_semantic = Mock()
         mock_result = Mock()
         mock_result.name = "greeting"
+        mock_result.score = 0.9
         mock_semantic.return_value = mock_result
         
         routers = [
             EchoRouter(),
             CommandRouter(),
-            GreetingRouter(mock_semantic),
-            SummarizeRouter(mock_semantic)
+            GreetingRouter([(mock_semantic, 0.5)]),
+            SummarizeRouter([(mock_semantic, 0.5)])
         ]
         chain = RouterChain(routers)
         

@@ -58,7 +58,14 @@ routers:
     
     greeting:
       enabled: true
-      provider: local
+      # Multi-stage cascade configuration
+      stages:
+        - provider: local
+          model: nomic-embed-text
+          threshold: 0.75  # High confidence required for stage 1
+        - provider: remote  # Cascade to stage 2 if confidence < 0.75
+          model: nomic-embed-text
+          threshold: 0.6   # Lower threshold for stage 2
       utterances:
         - "hello"
         - "hi"
@@ -69,7 +76,14 @@ routers:
     
     summarize:
       enabled: true
-      provider: local
+      # Multi-stage cascade configuration
+      stages:
+        - provider: local
+          model: nomic-embed-text
+          threshold: 0.7
+        - provider: remote
+          model: nomic-embed-text
+          threshold: 0.5
       utterances:
         - "summarize the conversation"
         - "create a summary"
