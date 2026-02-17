@@ -42,20 +42,20 @@ flowchart TB
     
     style Echo fill:#90EE90
     style Cmd fill:#90EE90
-    style Greet fill:#90EE90
-    style Sum fill:#90EE90
+    style Greet fill:#FFD700
+    style Sum fill:#FFD700
     style Sem fill:#FFD700
     style LLM fill:#FFB6C1
 ```
 
-**Legend**: 🟢 Fast (regex) | 🟡 Medium (semantic) | 🔴 Slow (LLM inference)
+**Legend**: 🟢 Fast (regex/logic) | 🟡 Medium (semantic embedding) | 🔴 Slow (LLM inference)
 
 ## Features
 
-- **Regex-Based Routing**: Fast pattern matching for commands (run:)
+- **Semantic Routing**: Embedding-based matching for greetings and summaries
+- **Regex Routing**: Fast pattern matching for commands (run:)
 - **Echo Optimization**: Bypasses LLM for tool execution results
-- **Static Routes**: Instant responses for greetings and summaries
-- **Semantic Routing**: Optional semantic similarity matching
+- **Static Responses**: Instant responses without LLM inference
 - **LLM Fallback**: Forwards unmatched requests to Ollama
 - **Streaming Support**: Full SSE streaming for both static and proxied responses
 - **Testable**: 30 unit tests with 100% coverage of core logic
@@ -64,27 +64,28 @@ flowchart TB
 
 Routers are executed in order until one matches:
 
-1. **EchoRouter** - Detects tool execution results (role=tool, function=exec)
-2. **CommandRouter** - Detects "run:" prefix for command execution
-3. **GreetingRouter** - Matches greeting patterns (hi, hello, hey)
-4. **SummarizeRouter** - Matches summary requests (summarize, checkpoint)
-5. **SemanticRouterAdapter** - Optional semantic similarity matching
-6. **Fallback** - Proxies to LLM for everything else
+1. **EchoRouter** - Detects tool execution results (role=tool, function=exec) - 🟢 Fast
+2. **CommandRouter** - Detects "run:" prefix for command execution - 🟢 Fast (regex)
+3. **GreetingRouter** - Semantic similarity matching for greetings - 🟡 Medium (embedding)
+4. **SummarizeRouter** - Semantic similarity for summary requests - 🟡 Medium (embedding)
+5. **Fallback** - Proxies to LLM for everything else - 🔴 Slow (full inference)
 
 ## Speed Optimization
 
-### Greeting Route (Regex Matching)
+### Greeting Route (Semantic Matching)
 
 ```mermaid
 sequenceDiagram
     participant Client
     participant Router
+    participant Embedding
     participant LLM
     
     Note over Client,LLM: With ClawLayer (Fast)
     Client->>Router: "hi"
-    Router->>Router: Regex match
-    Router-->>Client: "Hi" (instant)
+    Router->>Embedding: Encode query
+    Embedding-->>Router: Vector similarity
+    Router-->>Client: "Hi" (~100ms)
     
     Note over Client,LLM: Without Router (Slow)
     Client->>LLM: "hi"
@@ -126,21 +127,72 @@ sequenceDiagram
 
 ```bash
 # Install dependencies
-pip install flask requests python-dotenv semantic-router
+pip install flask requests python-dotenv pyyaml semantic-router
 
-# Configure environment
-cp .env.example .env
-# Edit .env with your settings
+# Copy example config
+cp config.example.yml config.yml
+# Edit config.yml with your settings
 ```
 
 ## Configuration
 
-`.env` file:
+ClawLayer supports **multiple LLM providers** for flexible deployment.
+
+### config.yml
+
+```yaml
+# Define multiple providers
+providers:
+  # Local Ollama for embeddings
+  local:
+    url: http://localhost:11434
+    type: ollama
+    models:
+      embed: nomic-embed-text
+  
+  # Remote Ollama for text generation
+  remote:
+    url: http://192.168.1.100:11434/v1/chat/completions
+    type: openai
+    models:
+      text: llama3.2
+      vision: llava:latest
+  
+  # OpenAI for production
+  openai:
+    url: https://api.openai.com/v1/chat/completions
+    type: openai
+    models:
+      text: gpt-4
+      embed: text-embedding-3-small
+
+# Assign providers to tasks
+defaults:
+  embedding_provider: local   # Fast local embeddings
+  text_provider: remote       # Remote text generation
+  vision_provider: openai     # OpenAI for vision
+
+# Router configuration
+routers:
+  priority: [echo, command, greeting, summarize]
+  
+  command:
+    enabled: true
+    prefix: "run:"
+  
+  greeting:
+    enabled: true
+    use_semantic: true
+    provider: local  # Override to use specific provider
 ```
-OLLAMA_URL=http://localhost:11434/v1/chat/completions
-OLLAMA_MODEL=llama3.2
-EMBED_MODEL=nomic-embed-text
-PORT=11435
+
+### Environment Variables
+
+```bash
+export EMBEDDING_PROVIDER=local
+export TEXT_PROVIDER=remote
+export VISION_PROVIDER=openai
+export CLAWLAYER_CONFIG=/path/to/config.yml
 ```
 
 ## Usage
@@ -168,6 +220,72 @@ OpenAI-compatible endpoints:
 Supports both streaming and non-streaming modes.
 
 ## Extending ClawLayer
+
+### Multi-Provider Use Cases
+
+**Hybrid deployment - local embeddings, remote inference:**
+```yaml
+providers:
+  local:
+    url: http://localhost:11434
+    models:
+      embed: nomic-embed-text
+  
+  remote:
+    url: http://gpu-server:11434/v1/chat/completions
+    models:
+      text: llama3.2-70b
+
+defaults:
+  embedding_provider: local   # Fast local embeddings
+  text_provider: remote       # Powerful remote model
+```
+
+**Multi-cloud setup:**
+```yaml
+providers:
+  ollama:
+    url: http://localhost:11434
+    models:
+      embed: nomic-embed-text
+      text: llama3.2
+  
+  openai:
+    url: https://api.openai.com/v1/chat/completions
+    models:
+      text: gpt-4
+      vision: gpt-4-vision-preview
+
+defaults:
+  embedding_provider: ollama  # Local embeddings
+  text_provider: openai       # OpenAI for complex queries
+  vision_provider: openai     # OpenAI for vision
+```
+
+### Customize Router Behavior
+
+Edit `config.yml` to enable/disable routers or change priority:
+
+```yaml
+routers:
+  # Change priority order
+  priority:
+    - command      # Check commands first
+    - echo         # Then echo
+    - greeting     # Then greetings
+    - summarize    # Finally summaries
+  
+  # Disable greeting router
+  greeting:
+    enabled: false
+  
+  # Change command prefix
+  command:
+    enabled: true
+    prefix: "exec:"  # Use "exec:" instead of "run:"
+```
+
+### Add Custom Router
 
 Add a new router by implementing the Router interface:
 
@@ -232,19 +350,7 @@ python -m unittest tests.test_clawlayer.TestCommandRouter -v
 python -m unittest tests.test_clawlayer.TestCommandRouter.test_detects_run_prefix -v
 ```
 
-Test coverage:
-- ✅ GreetingRouter (5 tests)
-- ✅ EchoRouter (3 tests)
-- ✅ CommandRouter (5 tests)
-- ✅ SummarizeRouter (3 tests)
-- ✅ RouterChain (3 tests)
-- ✅ MessageHandler (3 tests)
-- ✅ ResponseGenerator (3 tests)
-- ✅ LLMProxy (2 tests)
-- ✅ Config (2 tests)
-- ✅ Integration (1 test)
-
-**Total: 30 tests, all passing**
+**33 tests covering routers, handlers, config, and integration**
 
 ## Related Projects
 

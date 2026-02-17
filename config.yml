@@ -1,0 +1,55 @@
+# ClawLayer Router Configuration
+
+# LLM Providers Configuration
+providers:
+  # Local provider for embeddings
+  local:
+    url: http://localhost:11434
+    type: ollama
+    models:
+      embed: nomic-embed-text
+  
+  # Remote provider for text generation
+  remote:
+    url: http://192.168.1.100:11434/v1/chat/completions
+    type: openai  # openai-compatible API
+    models:
+      text: llama3.2
+      vision: llava:latest
+
+# Default provider assignments
+defaults:
+  embedding_provider: local
+  text_provider: remote
+  vision_provider: remote
+
+# Server Configuration
+server:
+  port: 11435
+
+# Router Configuration
+routers:
+  # Priority order (first match wins)
+  priority:
+    - echo
+    - command
+    - greeting
+    - summarize
+  
+  # Enable/disable individual routers
+  echo:
+    enabled: true
+  
+  command:
+    enabled: true
+    prefix: "run:"
+  
+  greeting:
+    enabled: true
+    use_semantic: true
+    provider: local  # Use local provider for embeddings
+  
+  summarize:
+    enabled: true
+    use_semantic: true
+    provider: local  # Use local provider for embeddings

@@ -27,15 +27,15 @@ class Router(ABC):
 
 
 class GreetingRouter(Router):
-    """Handles greeting messages."""
+    """Handles greeting messages using semantic similarity."""
     
-    def __init__(self, patterns: List[str] = None):
-        self.patterns = patterns or [r'\b(hi|hello|hey|greetings)\b']
+    def __init__(self, semantic_router=None):
+        self.semantic_router = semantic_router
     
     def route(self, message: str, context: Dict[str, Any]) -> Optional[RouteResult]:
-        msg_lower = message.lower().strip()
-        for pattern in self.patterns:
-            if re.search(pattern, msg_lower, re.IGNORECASE):
+        if self.semantic_router:
+            result = self.semantic_router(message)
+            if result and result.name == "greeting":
                 return RouteResult(
                     name="greeting",
                     content="Hi (quick response from semantic router)"
@@ -99,10 +99,10 @@ class CommandRouter(Router):
 
 
 class SummarizeRouter(Router):
-    """Provides structured summary template."""
+    """Provides structured summary template using semantic similarity."""
     
-    def __init__(self, patterns: List[str] = None):
-        self.patterns = patterns or [r'\b(summarize|checkpoint|summary)\b']
+    def __init__(self, semantic_router=None):
+        self.semantic_router = semantic_router
         self.template = """## Goal
 No user goal provided in the conversation.
 
@@ -129,9 +129,9 @@ No user goal provided in the conversation.
 - (none)"""
     
     def route(self, message: str, context: Dict[str, Any]) -> Optional[RouteResult]:
-        msg_lower = message.lower()
-        for pattern in self.patterns:
-            if re.search(pattern, msg_lower, re.IGNORECASE):
+        if self.semantic_router:
+            result = self.semantic_router(message)
+            if result and result.name == "summarize":
                 return RouteResult(name="summarize", content=self.template)
         return None
 

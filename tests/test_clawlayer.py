@@ -22,30 +22,41 @@ class TestGreetingRouter(unittest.TestCase):
     """Test greeting router."""
     
     def setUp(self):
-        self.router = GreetingRouter()
+        # Mock semantic router
+        self.mock_semantic = Mock()
+        self.router = GreetingRouter(self.mock_semantic)
     
     def test_matches_hello(self):
+        mock_result = Mock()
+        mock_result.name = "greeting"
+        self.mock_semantic.return_value = mock_result
+        
         result = self.router.route("hello", {})
         self.assertIsNotNone(result)
         self.assertEqual(result.name, "greeting")
         self.assertIn("Hi", result.content)
     
     def test_matches_hi(self):
+        mock_result = Mock()
+        mock_result.name = "greeting"
+        self.mock_semantic.return_value = mock_result
+        
         result = self.router.route("hi", {})
         self.assertIsNotNone(result)
         self.assertEqual(result.name, "greeting")
     
-    def test_matches_hey(self):
-        result = self.router.route("hey there", {})
-        self.assertIsNotNone(result)
-    
     def test_no_match(self):
+        mock_result = Mock()
+        mock_result.name = "other"
+        self.mock_semantic.return_value = mock_result
+        
         result = self.router.route("what is the weather", {})
         self.assertIsNone(result)
     
-    def test_case_insensitive(self):
-        result = self.router.route("HELLO", {})
-        self.assertIsNotNone(result)
+    def test_no_semantic_router(self):
+        router = GreetingRouter(None)
+        result = router.route("hello", {})
+        self.assertIsNone(result)
 
 
 class TestEchoRouter(unittest.TestCase):
@@ -141,19 +152,32 @@ class TestSummarizeRouter(unittest.TestCase):
     """Test summarize router."""
     
     def setUp(self):
-        self.router = SummarizeRouter()
+        self.mock_semantic = Mock()
+        self.router = SummarizeRouter(self.mock_semantic)
     
     def test_matches_summarize(self):
+        mock_result = Mock()
+        mock_result.name = "summarize"
+        self.mock_semantic.return_value = mock_result
+        
         result = self.router.route("summarize the conversation", {})
         self.assertIsNotNone(result)
         self.assertEqual(result.name, "summarize")
         self.assertIn("## Goal", result.content)
     
     def test_matches_checkpoint(self):
+        mock_result = Mock()
+        mock_result.name = "summarize"
+        self.mock_semantic.return_value = mock_result
+        
         result = self.router.route("checkpoint", {})
         self.assertIsNotNone(result)
     
     def test_no_match(self):
+        mock_result = Mock()
+        mock_result.name = "other"
+        self.mock_semantic.return_value = mock_result
+        
         result = self.router.route("hello", {})
         self.assertIsNone(result)
 
@@ -190,7 +214,12 @@ class TestRouterChain(unittest.TestCase):
     
     def test_priority_order(self):
         """Test that routers are tried in order."""
-        greeting_router = GreetingRouter()
+        mock_semantic = Mock()
+        mock_result = Mock()
+        mock_result.name = "other"
+        mock_semantic.return_value = mock_result
+        
+        greeting_router = GreetingRouter(mock_semantic)
         command_router = CommandRouter()
         
         chain = RouterChain([command_router, greeting_router])
@@ -300,26 +329,73 @@ class TestLLMProxy(unittest.TestCase):
 class TestConfig(unittest.TestCase):
     """Test configuration."""
     
-    @patch.dict('os.environ', {
-        'OLLAMA_URL': 'http://custom:8080',
-        'OLLAMA_MODEL': 'custom-model',
-        'EMBED_MODEL': 'custom-embed',
-        'PORT': '9999'
-    })
-    def test_from_env(self):
-        config = Config.from_env()
+    def test_from_yaml(self):
+        config = Config.from_yaml()
         
-        self.assertEqual(config.ollama_url, 'http://custom:8080')
-        self.assertEqual(config.ollama_model, 'custom-model')
-        self.assertEqual(config.embed_model, 'custom-embed')
-        self.assertEqual(config.port, 9999)
-    
-    @patch.dict('os.environ', {}, clear=True)
-    def test_defaults(self):
-        config = Config.from_env()
-        
+        self.assertIsNotNone(config.providers)
+        self.assertIn('local', config.providers)
+        self.assertIn('remote', config.providers)
         self.assertEqual(config.port, 11435)
-        self.assertIsNotNone(config.ollama_url)
+    
+    def test_provider_methods(self):
+        config = Config.from_yaml()
+        
+        # Test embedding provider
+        self.assertIsNotNone(config.get_embedding_url())
+        self.assertIsNotNone(config.get_embedding_model())
+        
+        # Test text provider
+        self.assertIsNotNone(config.get_text_url())
+        self.assertIsNotNone(config.get_text_model())
+    
+    def test_provider_config(self):
+        """Test provider configuration structure."""
+        config = Config.from_yaml()
+        
+        # Test local provider
+        local = config.get_provider('local')
+        self.assertIsNotNone(local)
+        self.assertEqual(local.type, 'ollama')
+        self.assertIn('embed', local.models)
+        
+        # Test remote provider
+        remote = config.get_provider('remote')
+        self.assertIsNotNone(remote)
+        self.assertEqual(remote.type, 'openai')
+        self.assertIn('text', remote.models)
+    
+    def test_router_config(self):
+        """Test router configuration."""
+        config = Config.from_yaml()
+        
+        # Test router priority
+        self.assertEqual(config.router_priority, ['echo', 'command', 'greeting', 'summarize'])
+        
+        # Test router enabled status
+        self.assertTrue(config.routers['echo'].enabled)
+        self.assertTrue(config.routers['command'].enabled)
+        self.assertTrue(config.routers['greeting'].enabled)
+        self.assertTrue(config.routers['summarize'].enabled)
+        
+        # Test router options
+        self.assertEqual(config.routers['command'].options.get('prefix'), 'run:')
+        self.assertTrue(config.routers['greeting'].options.get('use_semantic'))
+    
+    def test_provider_assignments(self):
+        """Test default provider assignments."""
+        config = Config.from_yaml()
+        
+        self.assertEqual(config.embedding_provider, 'local')
+        self.assertEqual(config.text_provider, 'remote')
+        self.assertEqual(config.vision_provider, 'remote')
+    
+    @patch.dict('os.environ', {'EMBEDDING_PROVIDER': 'custom', 'PORT': '9999'})
+    def test_env_override(self):
+        """Test environment variable overrides."""
+        config = Config.from_yaml()
+        
+        self.assertEqual(config.embedding_provider, 'custom')
+        self.assertEqual(config.port, 9999)
 
 
 class TestIntegration(unittest.TestCase):
@@ -327,11 +403,16 @@ class TestIntegration(unittest.TestCase):
     
     def test_full_routing_chain(self):
         """Test complete routing flow."""
+        mock_semantic = Mock()
+        mock_result = Mock()
+        mock_result.name = "greeting"
+        mock_semantic.return_value = mock_result
+        
         routers = [
             EchoRouter(),
             CommandRouter(),
-            GreetingRouter(),
-            SummarizeRouter()
+            GreetingRouter(mock_semantic),
+            SummarizeRouter(mock_semantic)
         ]
         chain = RouterChain(routers)
         
@@ -344,6 +425,7 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(result.name, "linux_command")
         
         # Test fallback
+        mock_result.name = "other"
         result = chain.route("what is the weather", {})
         self.assertEqual(result.name, "fallback")
         self.assertTrue(result.should_proxy)

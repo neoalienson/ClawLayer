@@ -1,0 +1,68 @@
+# ClawLayer Router Configuration Example
+
+# LLM Providers Configuration
+providers:
+  # Local provider for embeddings
+  local:
+    url: http://localhost:11434
+    type: ollama
+    models:
+      embed: nomic-embed-text
+  
+  # Remote provider for text generation
+  remote:
+    url: http://192.168.1.100:11434/v1/chat/completions
+    type: openai  # openai-compatible API
+    models:
+      text: llama3.2
+      vision: llava:latest
+  
+  # OpenAI provider example
+  openai:
+    url: https://api.openai.com/v1/chat/completions
+    type: openai
+    models:
+      text: gpt-4
+      vision: gpt-4-vision-preview
+      embed: text-embedding-3-small
+
+# Default provider assignments
+defaults:
+  embedding_provider: local    # Use local for embeddings (fast)
+  text_provider: remote        # Use remote for text generation
+  vision_provider: remote      # Use remote for vision tasks
+
+# Server Configuration
+server:
+  port: 11435
+
+# Router Configuration
+routers:
+  # Priority order (first match wins)
+  # Available routers: echo, command, greeting, summarize
+  priority:
+    - echo
+    - command
+    - greeting
+    - summarize
+  
+  # Echo Router - echoes tool execution results
+  echo:
+    enabled: true
+  
+  # Command Router - detects command execution patterns
+  command:
+    enabled: true
+    prefix: "run:"  # Command prefix to detect
+  
+  # Greeting Router - handles greetings
+  greeting:
+    enabled: true
+    use_semantic: true  # Use semantic similarity (requires semantic-router)
+    provider: local     # Use local provider for embeddings
+  
+  # Summarize Router - provides conversation summaries
+  summarize:
+    enabled: true
+    use_semantic: true  # Use semantic similarity (requires semantic-router)
+    provider: local     # Use local provider for embeddings
