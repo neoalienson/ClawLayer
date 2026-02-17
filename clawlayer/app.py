@@ -6,9 +6,9 @@ import sys
 import json
 
 from clawlayer.config import Config, RouterConfig, ProviderConfig
-from clawlayer.router import (
+from clawlayer.routers import (
     RouterChain, EchoRouter, CommandRouter, 
-    GreetingRouter, SummarizeRouter, SemanticRouterAdapter
+    GreetingRouter, SummarizeRouter
 )
 from clawlayer.handler import MessageHandler, ResponseGenerator
 from clawlayer.proxy import LLMProxy
@@ -113,8 +113,12 @@ def create_app(verbose: int = 0) -> ClawLayerApp:
     
     # Initialize semantic router if needed
     semantic_router = None
-    if config.routers['greeting'].enabled and config.routers['greeting'].options.get('use_semantic', True) or \
-       config.routers['summarize'].enabled and config.routers['summarize'].options.get('use_semantic', True):
+    semantic_enabled = any(
+        config.routers[name].enabled 
+        for name in config.semantic_router_priority
+    )
+    
+    if semantic_enabled:
         try:
             from semantic_router import Route, SemanticRouter
             from semantic_router.encoders import OllamaEncoder
@@ -149,7 +153,7 @@ def create_app(verbose: int = 0) -> ClawLayerApp:
             if verbose:
                 print("Warning: semantic-router not installed, semantic routing disabled", file=sys.stderr)
     
-    # Build router chain based on priority and enabled status
+    # Build router chain: fast routers first, then semantic routers
     router_map = {
         'echo': lambda: EchoRouter(),
         'command': lambda: CommandRouter(config.routers['command'].options.get('prefix', 'run:')),
@@ -158,13 +162,22 @@ def create_app(verbose: int = 0) -> ClawLayerApp:
     }
     
     routers = []
-    for router_name in config.router_priority:
+    
+    # Add fast routers
+    for router_name in config.fast_router_priority:
+        if router_name in router_map and config.routers.get(router_name, RouterConfig(True, {})).enabled:
+            routers.append(router_map[router_name]())
+    
+    # Add semantic routers
+    for router_name in config.semantic_router_priority:
         if router_name in router_map and config.routers.get(router_name, RouterConfig(True, {})).enabled:
             routers.append(router_map[router_name]())
     
     if verbose:
-        enabled_routers = [name for name in config.router_priority if config.routers.get(name, RouterConfig(True, {})).enabled]
-        print(f"Enabled routers (priority order): {', '.join(enabled_routers)}", file=sys.stderr)
+        fast_enabled = [name for name in config.fast_router_priority if config.routers.get(name, RouterConfig(True, {})).enabled]
+        semantic_enabled = [name for name in config.semantic_router_priority if config.routers.get(name, RouterConfig(True, {})).enabled]
+        print(f"Fast routers: {', '.join(fast_enabled)}", file=sys.stderr)
+        print(f"Semantic routers: {', '.join(semantic_enabled)}", file=sys.stderr)
     
     router_chain = RouterChain(routers)
     

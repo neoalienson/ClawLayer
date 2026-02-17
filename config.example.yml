@@ -38,31 +38,29 @@ server:
 
 # Router Configuration
 routers:
-  # Priority order (first match wins)
-  # Available routers: echo, command, greeting, summarize
-  priority:
-    - echo
-    - command
-    - greeting
-    - summarize
+  # Fast routers (regex/logic-based) - checked first, no LLM/embedding needed
+  fast:
+    priority:
+      - echo      # Tool result detection
+      - command   # Command prefix detection
+    
+    echo:
+      enabled: true
+    
+    command:
+      enabled: true
+      prefix: "run:"  # Command prefix to detect
   
-  # Echo Router - echoes tool execution results
-  echo:
-    enabled: true
-  
-  # Command Router - detects command execution patterns
-  command:
-    enabled: true
-    prefix: "run:"  # Command prefix to detect
-  
-  # Greeting Router - handles greetings
-  greeting:
-    enabled: true
-    use_semantic: true  # Use semantic similarity (requires semantic-router)
-    provider: local     # Use local provider for embeddings
-  
-  # Summarize Router - provides conversation summaries
-  summarize:
-    enabled: true
-    use_semantic: true  # Use semantic similarity (requires semantic-router)
-    provider: local     # Use local provider for embeddings
+  # Semantic routers (embedding-based) - checked after fast routers
+  semantic:
+    priority:
+      - greeting   # Greeting detection via embeddings
+      - summarize  # Summary request detection via embeddings
+    
+    greeting:
+      enabled: true
+      provider: local  # Use local provider for embeddings
+    
+    summarize:
+      enabled: true
+      provider: local  # Use local provider for embeddings

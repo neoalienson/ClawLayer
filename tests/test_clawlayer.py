@@ -9,7 +9,7 @@ import os
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from clawlayer.router import (
+from clawlayer.routers import (
     GreetingRouter, EchoRouter, CommandRouter, 
     SummarizeRouter, RouterChain, RouteResult
 )
@@ -368,8 +368,11 @@ class TestConfig(unittest.TestCase):
         """Test router configuration."""
         config = Config.from_yaml()
         
-        # Test router priority
-        self.assertEqual(config.router_priority, ['echo', 'command', 'greeting', 'summarize'])
+        # Test fast router priority
+        self.assertEqual(config.fast_router_priority, ['echo', 'command'])
+        
+        # Test semantic router priority
+        self.assertEqual(config.semantic_router_priority, ['greeting', 'summarize'])
         
         # Test router enabled status
         self.assertTrue(config.routers['echo'].enabled)
@@ -379,7 +382,6 @@ class TestConfig(unittest.TestCase):
         
         # Test router options
         self.assertEqual(config.routers['command'].options.get('prefix'), 'run:')
-        self.assertTrue(config.routers['greeting'].options.get('use_semantic'))
     
     def test_provider_assignments(self):
         """Test default provider assignments."""

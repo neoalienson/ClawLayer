@@ -19,32 +19,37 @@ By routing predictable interactions through static responses and intelligent cac
 flowchart TB
     Agent[OpenClaw Agent]
     CL[ClawLayer]
-    Echo[EchoRouter]
-    Cmd[CommandRouter]
-    Greet[GreetingRouter]
-    Sum[SummarizeRouter]
-    Sem[SemanticRouter]
-    LLM[Ollama/LLM]
+    
+    subgraph Fast["⚡ Fast Routers (regex/logic)"]
+        Echo[EchoRouter<br/>role=tool check]
+        Cmd[CommandRouter<br/>run: prefix]
+    end
+    
+    subgraph Semantic["🧠 Semantic Routers (embedding)"]
+        Greet[GreetingRouter<br/>semantic matching]
+        Sum[SummarizeRouter<br/>semantic matching]
+    end
+    
+    LLM[🔴 LLM Fallback]
     
     Agent -->|Request| CL
-    CL --> Echo
-    Echo -->|Match: role=tool| Agent
+    CL --> Fast
+    Echo -->|Match| Agent
     Echo -->|No Match| Cmd
-    Cmd -->|Match: run:| Agent
-    Cmd -->|No Match| Greet
-    Greet -->|Match: hi/hello| Agent
+    Cmd -->|Match| Agent
+    Cmd -->|No Match| Semantic
+    Greet -->|Match| Agent
     Greet -->|No Match| Sum
-    Sum -->|Match: summarize| Agent
-    Sum -->|No Match| Sem
-    Sem -->|Semantic Match| Agent
-    Sem -->|No Match| LLM
+    Sum -->|Match| Agent
+    Sum -->|No Match| LLM
     LLM -->|Response| Agent
     
+    style Fast fill:#E8F5E9
+    style Semantic fill:#FFF9C4
     style Echo fill:#90EE90
     style Cmd fill:#90EE90
     style Greet fill:#FFD700
     style Sum fill:#FFD700
-    style Sem fill:#FFD700
     style LLM fill:#FFB6C1
 ```
 
@@ -62,13 +67,18 @@ flowchart TB
 
 ## Router Priority
 
-Routers are executed in order until one matches:
+Routers are organized into two categories, each with its own priority:
 
-1. **EchoRouter** - Detects tool execution results (role=tool, function=exec) - 🟢 Fast
-2. **CommandRouter** - Detects "run:" prefix for command execution - 🟢 Fast (regex)
-3. **GreetingRouter** - Semantic similarity matching for greetings - 🟡 Medium (embedding)
-4. **SummarizeRouter** - Semantic similarity for summary requests - 🟡 Medium (embedding)
-5. **Fallback** - Proxies to LLM for everything else - 🔴 Slow (full inference)
+### Fast Routers (checked first)
+1. **EchoRouter** - Detects tool execution results (role=tool, function=exec) - 🟢 Instant
+2. **CommandRouter** - Detects "run:" prefix for command execution - 🟢 Instant (regex)
+
+### Semantic Routers (checked after fast routers)
+3. **GreetingRouter** - Semantic similarity matching for greetings - 🟡 ~100ms (embedding)
+4. **SummarizeRouter** - Semantic similarity for summary requests - 🟡 ~100ms (embedding)
+
+### Fallback
+5. **LLM Proxy** - Forwards to LLM for everything else - 🔴 2-5s (full inference)
 
 ## Speed Optimization
 
@@ -174,16 +184,29 @@ defaults:
 
 # Router configuration
 routers:
+  # Priority order (first match wins, then returns immediately)
   priority: [echo, command, greeting, summarize]
   
+  # EchoRouter - Fast logic check
+  echo:
+    enabled: true
+  
+  # CommandRouter - Fast regex check  
   command:
     enabled: true
     prefix: "run:"
   
+  # GreetingRouter - Uses semantic matching internally
   greeting:
     enabled: true
     use_semantic: true
     provider: local  # Override to use specific provider
+  
+  # SummarizeRouter - Uses semantic matching internally
+  summarize:
+    enabled: true
+    use_semantic: true
+    provider: local
 ```
 
 ### Environment Variables
@@ -264,25 +287,28 @@ defaults:
 
 ### Customize Router Behavior
 
-Edit `config.yml` to enable/disable routers or change priority:
+Edit `config.yml` to enable/disable routers or change priority within each category:
 
 ```yaml
 routers:
-  # Change priority order
-  priority:
-    - command      # Check commands first
-    - echo         # Then echo
-    - greeting     # Then greetings
-    - summarize    # Finally summaries
+  # Fast routers - checked first
+  fast:
+    priority:
+      - command  # Check commands before echo
+      - echo
+    
+    command:
+      enabled: true
+      prefix: "exec:"  # Change prefix
   
-  # Disable greeting router
-  greeting:
-    enabled: false
-  
-  # Change command prefix
-  command:
-    enabled: true
-    prefix: "exec:"  # Use "exec:" instead of "run:"
+  # Semantic routers - checked after fast routers
+  semantic:
+    priority:
+      - summarize  # Check summaries before greetings
+      - greeting
+    
+    greeting:
+      enabled: false  # Disable greeting router
 ```
 
 ### Add Custom Router

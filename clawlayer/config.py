@@ -32,7 +32,8 @@ class Config:
     text_provider: str
     vision_provider: str
     port: int
-    router_priority: List[str]
+    fast_router_priority: List[str]
+    semantic_router_priority: List[str]
     routers: Dict[str, RouterConfig]
     
     def get_provider(self, name: str) -> Optional[ProviderConfig]:
@@ -112,9 +113,28 @@ class Config:
         
         # Parse router configs
         routers_config = data.get('routers', {})
+        
+        # Get fast and semantic router priorities
+        fast_config = routers_config.get('fast', {})
+        semantic_config = routers_config.get('semantic', {})
+        
+        fast_priority = fast_config.get('priority', ['echo', 'command'])
+        semantic_priority = semantic_config.get('priority', ['greeting', 'summarize'])
+        
+        # Build router configs from both categories
         routers = {}
-        for name in ['echo', 'command', 'greeting', 'summarize']:
-            router_data = routers_config.get(name, {})
+        all_router_names = ['echo', 'command', 'greeting', 'summarize']
+        
+        for name in all_router_names:
+            # Check in fast category first
+            if name in fast_config:
+                router_data = fast_config[name]
+            # Then check in semantic category
+            elif name in semantic_config:
+                router_data = semantic_config[name]
+            else:
+                router_data = {}
+            
             routers[name] = RouterConfig(
                 enabled=router_data.get('enabled', True),
                 options={
@@ -129,7 +149,8 @@ class Config:
             text_provider=os.getenv("TEXT_PROVIDER", defaults.get('text_provider', 'remote')),
             vision_provider=os.getenv("VISION_PROVIDER", defaults.get('vision_provider', 'remote')),
             port=int(os.getenv("PORT", server.get('port', 11435))),
-            router_priority=routers_config.get('priority', ['echo', 'command', 'greeting', 'summarize']),
+            fast_router_priority=fast_priority,
+            semantic_router_priority=semantic_priority,
             routers=routers
         )
     

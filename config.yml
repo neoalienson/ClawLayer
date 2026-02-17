@@ -29,27 +29,29 @@ server:
 
 # Router Configuration
 routers:
-  # Priority order (first match wins)
-  priority:
-    - echo
-    - command
-    - greeting
-    - summarize
+  # Fast routers (regex/logic) - checked first
+  fast:
+    priority:
+      - echo
+      - command
+    
+    echo:
+      enabled: true
+    
+    command:
+      enabled: true
+      prefix: "run:"
   
-  # Enable/disable individual routers
-  echo:
-    enabled: true
-  
-  command:
-    enabled: true
-    prefix: "run:"
-  
-  greeting:
-    enabled: true
-    use_semantic: true
-    provider: local  # Use local provider for embeddings
-  
-  summarize:
-    enabled: true
-    use_semantic: true
-    provider: local  # Use local provider for embeddings
+  # Semantic routers (embedding-based) - checked after fast routers
+  semantic:
+    priority:
+      - greeting
+      - summarize
+    
+    greeting:
+      enabled: true
+      provider: local  # Use local provider for embeddings
+    
+    summarize:
+      enabled: true
+      provider: local  # Use local provider for embeddings

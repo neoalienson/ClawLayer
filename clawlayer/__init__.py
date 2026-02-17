@@ -2,7 +2,7 @@
 
 __version__ = "0.1.0"
 
-from clawlayer.router import (
+from clawlayer.routers import (
     Router, RouteResult, RouterChain,
     GreetingRouter, EchoRouter, CommandRouter, SummarizeRouter
 )
