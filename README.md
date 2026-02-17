@@ -26,10 +26,11 @@ flowchart TB
     end
     
     subgraph Semantic["🧠 Semantic Routers (embedding)"]
-        Greet[GreetingRouter<br/>semantic matching]
-        Sum[SummarizeRouter<br/>semantic matching]
+        Greet[GreetingRouter]
+        Sum[SummarizeRouter]
     end
     
+    Embed[Embedding Model<br/>nomic-embed-text]
     LLM[🔴 LLM Fallback]
     
     Agent -->|Request| CL
@@ -38,10 +39,17 @@ flowchart TB
     Echo -->|No Match| Cmd
     Cmd -->|Match| Agent
     Cmd -->|No Match| Semantic
+    
+    Greet -->|Encode query| Embed
+    Embed -->|Vector similarity| Greet
     Greet -->|Match| Agent
     Greet -->|No Match| Sum
+    
+    Sum -->|Encode query| Embed
+    Embed -->|Vector similarity| Sum
     Sum -->|Match| Agent
     Sum -->|No Match| LLM
+    
     LLM -->|Response| Agent
     
     style Fast fill:#E8F5E9
@@ -50,10 +58,11 @@ flowchart TB
     style Cmd fill:#90EE90
     style Greet fill:#FFD700
     style Sum fill:#FFD700
+    style Embed fill:#87CEEB
     style LLM fill:#FFB6C1
 ```
 
-**Legend**: 🟢 Fast (regex/logic) | 🟡 Medium (semantic embedding) | 🔴 Slow (LLM inference)
+**Legend**: 🟢 Fast (regex/logic) | 🟡 Medium (semantic embedding) | 🔵 Embedding model | 🔴 Slow (LLM inference)
 
 ## Features
 
@@ -63,7 +72,6 @@ flowchart TB
 - **Static Responses**: Instant responses without LLM inference
 - **LLM Fallback**: Forwards unmatched requests to Ollama
 - **Streaming Support**: Full SSE streaming for both static and proxied responses
-- **Testable**: 30 unit tests with 100% coverage of core logic
 
 ## Router Priority
 
@@ -375,8 +383,6 @@ python -m unittest tests.test_clawlayer.TestCommandRouter -v
 # Run specific test
 python -m unittest tests.test_clawlayer.TestCommandRouter.test_detects_run_prefix -v
 ```
-
-**33 tests covering routers, handlers, config, and integration**
 
 ## Related Projects
 
