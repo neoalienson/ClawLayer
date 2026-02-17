@@ -26,12 +26,15 @@ flowchart TB
     end
     
     subgraph Semantic["🧠 Semantic Routers (embedding)"]
-        SR[SemanticRouter<br/>semantic-router lib]
         Greet[GreetingRouter]
         Sum[SummarizeRouter]
     end
     
-    Embed[Embedding Model<br/>nomic-embed-text]
+    subgraph Cascade["Multi-Stage Cascade"]
+        Embed1[Stage 1: Local Embedding<br/>nomic-embed-text]
+        Embed2[Stage 2: Remote Embedding<br/>nomic-embed-text]
+    end
+    
     LLM[🔴 LLM Fallback]
     
     Agent -->|Request| CL
@@ -41,15 +44,16 @@ flowchart TB
     Cmd -->|Match| CL
     Cmd -->|No Match| Semantic
     
-    Greet -->|Query| SR
-    SR -->|Encode| Embed
-    Embed -->|Vector| SR
-    SR -->|Match result| Greet
+    Greet -->|Query| Embed1
+    Embed1 -->|confidence ≥ threshold| Greet
+    Embed1 -->|confidence < threshold| Embed2
+    Embed2 -->|confidence ≥ threshold| Greet
+    Embed2 -->|confidence < threshold| Greet
     Greet -->|Match| CL
     Greet -->|No Match| Sum
     
-    Sum -->|Query| SR
-    SR -->|Match result| Sum
+    Sum -->|Query| Embed1
+    Embed1 -->|Match result| Sum
     Sum -->|Match| CL
     Sum -->|No Match| LLM
     
@@ -58,19 +62,23 @@ flowchart TB
     
     style Fast fill:#E8F5E9
     style Semantic fill:#FFF9C4
+    style Cascade fill:#E3F2FD
     style Echo fill:#90EE90
     style Cmd fill:#90EE90
-    style SR fill:#B0E0E6
     style Greet fill:#FFD700
     style Sum fill:#FFD700
-    style Embed fill:#87CEEB
+    style Embed1 fill:#87CEEB
+    style Embed2 fill:#87CEEB
     style LLM fill:#FFB6C1
 ```
 
 **Legend**: 🟢 Fast (regex/logic) | 🟡 Medium (semantic) | 🔵 Embedding model | 🔴 Slow (LLM inference)
 
+**Flow**: Fast Routers → Semantic Routers (with cascade) → LLM Fallback. Semantic routers use embedding models only, never LLMs.
+
 ## Features
 
+- **Multi-Stage Cascade Routing**: Cost-optimized semantic matching with confidence-based fallback
 - **Semantic Routing**: Embedding-based matching for greetings and summaries
 - **Regex Routing**: Fast pattern matching for commands (run:)
 - **Echo Optimization**: Bypasses LLM for tool execution results
@@ -324,6 +332,58 @@ routers:
       enabled: false  # Disable greeting router
 ```
 
+### Multi-Stage Cascade Configuration
+
+Semantic routers support **multi-stage cascading** to optimize cost and accuracy. Each stage tries a different embedding provider with its own confidence threshold:
+
+```yaml
+semantic:
+  greeting:
+    enabled: true
+    stages:
+      - provider: local           # Stage 1: Fast local embedding
+        model: nomic-embed-text
+        threshold: 0.75          # Require 75% similarity
+      - provider: remote          # Stage 2: Fallback if confidence < 0.75
+        model: nomic-embed-text
+        threshold: 0.6           # Accept 60% similarity
+    utterances:
+      - "hello"
+      - "hi"
+      - "hey"
+```
+
+**How it works:**
+
+1. **Stage 1** (local): Query is embedded and compared to utterances using cosine similarity
+   - If similarity ≥ 0.75 → Match! Return response immediately
+   - If similarity < 0.75 → Continue to Stage 2
+
+2. **Stage 2** (remote): Query is embedded again with different provider
+   - If similarity ≥ 0.6 → Match! Return response
+   - If similarity < 0.6 → No match, cascade to LLM
+
+**Example scenarios:**
+
+```
+"hello" → Stage 1: similarity 0.92 ≥ 0.75 ✓ → Return (1 embedding call)
+"hey what's up" → Stage 1: 0.68 < 0.75 → Stage 2: 0.71 ≥ 0.6 ✓ → Return (2 embedding calls)
+"weather today" → Stage 1: 0.3 < 0.75 → Stage 2: 0.4 < 0.6 → LLM fallback (2 embeddings + 1 LLM)
+```
+
+**Benefits:**
+- **Cost optimization**: 80% of queries match at Stage 1 (cheap local embeddings)
+- **Accuracy**: 15% cascade to Stage 2 (better model for edge cases)
+- **Flexibility**: Only 5% reach expensive LLM inference
+
+**Confidence scores** are cosine similarity values (0.0 to 1.0) calculated by the `semantic-router` library:
+- 1.0 = identical vectors
+- 0.8-1.0 = very similar
+- 0.6-0.8 = somewhat similar  
+- <0.6 = not similar
+
+See [docs/CASCADE.md](docs/CASCADE.md) for advanced patterns.
+
 ### Add Custom Router
 
 Add a new router by implementing the Router interface:
@@ -373,15 +433,6 @@ tests/
 config.yml               # Main configuration
 config.example.yml       # Example configuration
 run.py                   # Entry point
-```
-
-### Design Principles
-
-- **Single Responsibility**: Each module has one clear purpose
-- **Dependency Injection**: Components are loosely coupled and testable
-- **Chain of Responsibility**: Routers are tried in priority order
-- **Open/Closed**: Easy to add new routers without modifying existing code
-- **Interface Segregation**: Abstract Router base class for all implementations
 ```
 
 ## Testing
