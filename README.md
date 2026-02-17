@@ -36,24 +36,25 @@ flowchart TB
     
     Agent -->|Request| CL
     CL --> Fast
-    Echo -->|Match| Agent
+    Echo -->|Match| CL
     Echo -->|No Match| Cmd
-    Cmd -->|Match| Agent
+    Cmd -->|Match| CL
     Cmd -->|No Match| Semantic
     
     Greet -->|Query| SR
     SR -->|Encode| Embed
     Embed -->|Vector| SR
     SR -->|Match result| Greet
-    Greet -->|Match| Agent
+    Greet -->|Match| CL
     Greet -->|No Match| Sum
     
     Sum -->|Query| SR
     SR -->|Match result| Sum
-    Sum -->|Match| Agent
+    Sum -->|Match| CL
     Sum -->|No Match| LLM
     
-    LLM -->|Response| Agent
+    LLM -->|Response| CL
+    CL -->|Response| Agent
     
     style Fast fill:#E8F5E9
     style Semantic fill:#FFF9C4
