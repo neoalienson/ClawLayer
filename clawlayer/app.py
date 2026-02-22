@@ -56,19 +56,22 @@ class ClawLayerApp:
         # Route the message
         route_result = self.router_chain.route(message, context)
         
-        # Record stats
-        latency_ms = (time.time() - start_time) * 1000
-        content = route_result.content if hasattr(route_result, 'content') else None
-        self.stats.record(message, route_result.name, latency_ms, content, request_data=data)
-        
         if self.verbose:
             self._log(f"🎯 ROUTE: {route_result.name}")
         
         # Handle response
         if route_result.should_proxy:
-            return self._handle_proxy(data, context["stream"], route_result.name)
+            response = self._handle_proxy(data, context["stream"], route_result.name)
+            response_data = None  # Proxy responses not captured for now
         else:
-            return self._handle_static(route_result, context["stream"])
+            response, response_data = self._handle_static(route_result, context["stream"])
+        
+        # Record stats
+        latency_ms = (time.time() - start_time) * 1000
+        content = route_result.content if hasattr(route_result, 'content') else None
+        self.stats.record(message, route_result.name, latency_ms, content, request_data=data, response_data=response_data)
+        
+        return response
     
     def _handle_static(self, route_result, stream: bool):
         """Handle static route response."""
@@ -76,12 +79,12 @@ class ClawLayerApp:
             return Response(
                 ResponseGenerator.generate_stream(route_result),
                 mimetype="text/event-stream"
-            )
+            ), None
         else:
             response = ResponseGenerator.generate_response(route_result, stream)
             if self.verbose:
                 self._log(f"💬 RESPONSE: {json.dumps(response, indent=2)}")
-            return jsonify(response)
+            return jsonify(response), response
     
     def _handle_proxy(self, data: dict, stream: bool, route_name: str):
         """Handle proxy to LLM."""
