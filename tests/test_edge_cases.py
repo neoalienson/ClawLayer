@@ -38,10 +38,11 @@ class TestEdgeCases(unittest.TestCase):
         router = GreetingRouter([(mock_semantic, 0.5, 'embedding')])
         long_message = "hello " * 10000  # Very long message
         
+        # Pre-filter rejects messages > 500 chars
         result = router.route(long_message, {})
         
-        # Should handle without crashing
-        self.assertIsNotNone(result)
+        # Should be rejected by pre-filter
+        self.assertIsNone(result)
     
     def test_special_characters_in_message(self):
         """Test routing with special characters and unicode."""
@@ -218,17 +219,21 @@ class TestConcurrency(unittest.TestCase):
         """Test RouterChain with concurrent requests."""
         router1 = Mock()
         router1.route.return_value = None
+        router1._last_stage_details = []
         
         router2 = Mock()
         router2.route.return_value = RouteResult(name="test")
+        router2._last_stage_details = []
         
         chain = RouterChain([router1, router2])
         
         results = []
+        lock = threading.Lock()
         
         def route_message():
             result = chain.route("message", {})
-            results.append(result)
+            with lock:
+                results.append(result)
         
         threads = [threading.Thread(target=route_message) for _ in range(5)]
         
