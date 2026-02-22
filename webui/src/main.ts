@@ -22,7 +22,7 @@ export class App extends LitElement {
   render() {
     return html`
       <nav>
-        <h1>🦅 ClawLayer</h1>
+        <h1>🦞🍽️ ClawLayer</h1>
         <div class="tabs">
           <button 
             class=${this.currentTab === 'dashboard' ? 'active' : ''} 

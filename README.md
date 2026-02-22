@@ -10,12 +10,14 @@ ClawLayer provides a **simple YAML-driven configuration** to route OpenClaw agen
 - **Zero-latency tool calls** for command execution patterns via regex
 - **Multi-stage cascade** from fast/cheap to accurate/expensive models
 - **Transparent fallback** to full LLM inference when needed
+- **Real-time monitoring** with web UI to understand how OpenClaw processes requests
 
 **Key Benefits:**
 - ⚡ **Lightweight**: Minimal dependencies, simple architecture
 - 🎯 **Easy Configuration**: Everything in YAML - no code changes needed
 - 🔧 **Highly Customizable**: Mix embedding and LLM stages, adjust thresholds, add custom routers
 - 💰 **Cost Optimized**: Route 80% of requests through cheap models, 15% through mid-tier, 5% to expensive LLM
+- 🔍 **Observability**: Web UI with real-time stats and detailed request logs - perfect for understanding OpenClaw's behavior
 
 ### System Architecture
 
@@ -98,6 +100,11 @@ flowchart TB
   - Mix embedding and LLM providers in cascade
   - Add custom routers with simple Python interface
   - Configure router priority and enable/disable per route
+- **Understand OpenClaw**: Web UI provides real-time visibility into how OpenClaw agents work
+  - See which routers handle which requests
+  - Inspect full request/response data
+  - Monitor routing performance and latency
+  - Perfect for learning, debugging, and optimizing OpenClaw workflows
 
 ## Router Priority
 
@@ -204,7 +211,29 @@ cd webui && npm install && cd ..
 - Backend API: http://localhost:11435
 - Web UI: http://localhost:3000
 
+**Stop services:**
+```bash
+./stop-dev.sh
+```
+
 That's it! ClawLayer is now routing requests intelligently.
+
+### Web UI Features
+
+The web UI helps you **understand how OpenClaw works** by providing:
+
+![ClawLayer Web UI](docs/assets/webui.png)
+
+- **Dashboard**: Real-time statistics showing request counts, router hit rates, average latency, and uptime
+- **Config Editor**: Edit YAML configuration and reload without restarting
+- **Log Viewer**: 
+  - See all requests in real-time
+  - Click any log entry to view full details
+  - Inspect complete request/response data (untruncated)
+  - Understand which router handled each request and why
+  - Monitor latency per request
+
+Perfect for learning OpenClaw's request flow and optimizing your routing configuration!
 
 ## Configuration
 
@@ -494,64 +523,11 @@ class CustomRouter(Router):
 
 Register in `router_factory.py` or configure via YAML (see Example 4 above).
 
-### File Structure
+## Documentation
 
-```
-clawlayer/
-├── __init__.py          # Package exports
-├── app.py               # Flask application & dependency injection
-├── config.py            # Configuration management
-├── handler.py           # Message handling & response generation
-├── proxy.py             # LLM proxy for forwarding requests
-├── router_factory.py    # Factory for building routers from YAML config
-├── stats.py             # Statistics collection
-├── web_api.py           # Web API endpoints
-└── routers/
-    ├── __init__.py              # Base classes (Router, RouteResult) + exports
-    ├── semantic_base_router.py  # Base class for multi-stage semantic routers
-    ├── echo_router.py           # EchoRouter - tool result detection
-    ├── command_router.py        # CommandRouter - command prefix detection
-    ├── greeting_router.py       # GreetingRouter - semantic greeting matching
-    ├── summarize_router.py      # SummarizeRouter - semantic summary matching
-    └── router_chain.py          # RouterChain - router management
-
-webui/                   # Node.js Web UI
-├── src/
-│   ├── main.ts          # Main app component
-│   ├── api/
-│   │   └── clawlayer-client.ts  # API client
-│   └── components/
-│       ├── dashboard.ts         # Dashboard view
-│       ├── config-editor.ts     # Config editor
-│       └── log-viewer.ts        # Log viewer
-├── index.html           # HTML entry point
-├── package.json         # Node.js dependencies
-└── vite.config.ts       # Vite configuration
-
-tests/
-├── test_clawlayer.py           # Core functionality tests
-└── test_cascade_edge_cases.py  # Multi-stage cascade and edge case tests
-
-config.yml               # Main configuration
-config.example.yml       # Example configuration
-run.py                   # Entry point
-start-dev.sh             # Development startup script
-```
-
-## Testing
-
-All core components have comprehensive unit tests:
-
-```bash
-# Run all tests
-python -m unittest discover tests -v
-
-# Run specific test file
-python -m unittest tests.test_clawlayer -v
-
-# Run specific test class
-python -m unittest tests.test_clawlayer.TestCommandRouter -v
-```
+- **[Testing Guide](docs/TESTING.md)** - Python and Node.js test coverage, running tests
+- **[File Structure](docs/FILE_STRUCTURE.md)** - Project layout and component organization
+- **[Cascade Patterns](docs/CASCADE.md)** - Advanced multi-stage routing configurations
 
 ## Related Projects
 

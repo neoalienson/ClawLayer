@@ -2,7 +2,7 @@
 
 # Start ClawLayer with Web UI
 
-echo "🦅 Starting ClawLayer..."
+echo "🦞🍽️ Starting ClawLayer..."
 echo ""
 echo "Backend API: http://localhost:11435"
 echo "Web UI: http://localhost:3000"
@@ -16,7 +16,7 @@ python run.py &
 BACKEND_PID=$!
 
 # Wait for backend to start
-sleep 2
+sleep 3
 
 # Start Node.js web UI
 cd webui

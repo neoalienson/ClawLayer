@@ -1,9 +1,11 @@
 """Web API endpoints for ClawLayer UI."""
 
-from flask import jsonify, request
+from flask import jsonify, request, Response
 from flask_cors import CORS
 import yaml
 import os
+import json
+import time
 
 
 def register_web_api(app, stats, config, router_chain):
@@ -87,3 +89,20 @@ def register_web_api(app, stats, config, router_chain):
         """Get recent logs."""
         limit = request.args.get('limit', 50, type=int)
         return jsonify(stats.get_recent_logs(limit))
+    
+    @app.route('/api/events')
+    def events():
+        """SSE endpoint for real-time updates."""
+        def generate():
+            while True:
+                data = {
+                    'stats': stats.to_dict(),
+                    'logs': stats.get_recent_logs(10)
+                }
+                yield f"data: {json.dumps(data)}\n\n"
+                time.sleep(3)
+        
+        return Response(generate(), mimetype='text/plain', headers={
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive'
+        })

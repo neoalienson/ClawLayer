@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch, MagicMock
 import json
 import sys
 import os
+from flask import Flask
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -16,6 +17,7 @@ from clawlayer.routers import (
 from clawlayer.handler import MessageHandler, ResponseGenerator
 from clawlayer.proxy import LLMProxy
 from clawlayer.config import Config
+from clawlayer.web_api import register_web_api
 
 
 class TestGreetingRouter(unittest.TestCase):
@@ -436,6 +438,42 @@ class TestConfig(unittest.TestCase):
         
         self.assertEqual(config.embedding_provider, 'custom')
         self.assertEqual(config.port, 9999)
+
+
+class TestWebAPI(unittest.TestCase):
+    """Test web API endpoints including SSE."""
+    
+    def setUp(self):
+        self.app = Flask(__name__)
+        self.stats = Mock()
+        self.stats.to_dict.return_value = {'requests': 10, 'router_hits': {}}
+        self.stats.get_recent_logs.return_value = [{'message': 'test', 'timestamp': 123}]
+        self.config = Mock()
+        self.router_chain = Mock()
+        
+        register_web_api(self.app, self.stats, self.config, self.router_chain)
+        self.client = self.app.test_client()
+    
+    def test_get_stats(self):
+        response = self.client.get('/api/stats')
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertEqual(data['requests'], 10)
+    
+    def test_get_logs(self):
+        response = self.client.get('/api/logs')
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['message'], 'test')
+    
+    def test_sse_events_endpoint(self):
+        """Test SSE events endpoint returns proper headers."""
+        response = self.client.get('/api/events')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.mimetype, 'text/plain')
+        self.assertIn('no-cache', response.headers.get('Cache-Control', ''))
+        self.assertIn('keep-alive', response.headers.get('Connection', ''))
 
 
 class TestIntegration(unittest.TestCase):

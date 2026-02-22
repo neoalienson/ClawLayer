@@ -23,17 +23,31 @@ export class Dashboard extends LitElement {
   @state() routers: Router[] = [];
   
   private client = new ClawLayerClient();
-  private interval?: number;
+  private eventSource?: EventSource;
   
   connectedCallback() {
     super.connectedCallback();
     this.loadData();
-    this.interval = window.setInterval(() => this.loadData(), 5000);
+    this.startEventStream();
   }
   
   disconnectedCallback() {
     super.disconnectedCallback();
-    if (this.interval) clearInterval(this.interval);
+    if (this.eventSource) {
+      this.eventSource.close();
+    }
+  }
+  
+  startEventStream() {
+    this.eventSource = new EventSource('/api/events');
+    this.eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      this.stats = data.stats;
+      this.routers = data.routers || this.routers;
+    };
+    this.eventSource.onerror = () => {
+      console.log('SSE connection lost, retrying...');
+    };
   }
   
   async loadData() {
