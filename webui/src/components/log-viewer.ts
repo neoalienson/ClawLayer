@@ -308,17 +308,22 @@ export class LogViewer extends LitElement {
                     ${(log as any).tried_routers.length} router(s) tried
                   </div>
                   ${this.collapsedSections.has('tried-routers') ? html`
-                    <div class="message-preview">${(log as any).tried_routers.join(' → ')}</div>
+                    <div class="message-preview">
+                      ${(log as any).tried_routers.map((r: any) => typeof r === 'string' ? r : r.name).join(' → ')}
+                    </div>
                   ` : html`
                     <div class="router-details">
-                      ${(log as any).tried_routers.map((router: string, i: number) => html`
+                      ${(log as any).tried_routers.map((router: any, i: number) => {
+                        const routerName = typeof router === 'string' ? router : router.name || 'unknown';
+                        const routerData = typeof router === 'object' ? router : null;
+                        return html`
                         <div class="router-step">
-                          <strong>${i + 1}. ${router.split('[')[0].trim()}</strong>
-                          ${router.includes('[') ? html`
+                          <strong>${i + 1}. ${routerName.split('[')[0].trim()}</strong>
+                          ${routerName.includes('[') ? html`
                             <div class="stage-info">
                               <div class="section-header" @click=${() => this.toggleSection(`router-${i}-stages`)}>
                                 <span class="expand-icon">${this.collapsedSections.has(`router-${i}-stages`) ? '▶' : '▼'}</span>
-                                ${router.split('[')[1]?.replace(']', '')}
+                                ${routerName.split('[')[1]?.replace(']', '')}
                               </div>
                               ${!this.collapsedSections.has(`router-${i}-stages`) ? html`
                                 <div class="stage-requests">
@@ -356,8 +361,24 @@ export class LogViewer extends LitElement {
                               ` : ''}
                             </div>
                           ` : ''}
+                          ${routerData?.request || routerData?.response ? html`
+                            <div class="stage-requests">
+                              ${routerData.request ? html`
+                                <div class="request-section">
+                                  <strong>Request:</strong>
+                                  <pre class="request-json">${JSON.stringify(routerData.request, null, 2)}</pre>
+                                </div>
+                              ` : ''}
+                              ${routerData.response ? html`
+                                <div class="response-section">
+                                  <strong>Response:</strong>
+                                  <pre class="request-json">${JSON.stringify(routerData.response, null, 2)}</pre>
+                                </div>
+                              ` : ''}
+                            </div>
+                          ` : ''}
                         </div>
-                      `)}
+                      `})}
                     </div>
                   `}
                 </div>
