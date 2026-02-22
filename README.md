@@ -178,7 +178,7 @@ sequenceDiagram
 
 ### 1. Install
 ```bash
-pip install flask requests python-dotenv pyyaml semantic-router flask-cors
+pip install -r requirements.txt
 ```
 
 ### 2. Configure

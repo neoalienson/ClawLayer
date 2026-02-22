@@ -23,9 +23,18 @@ def register_web_api(app, stats, config, router_chain):
     def get_config():
         """Get current configuration."""
         config_path = os.getenv('CLAWLAYER_CONFIG', 'config.yml')
+        example_path = 'config.example.yml'
+        
+        # Try to load existing config, fallback to example
         try:
-            with open(config_path, 'r') as f:
-                config_data = yaml.safe_load(f)
+            if os.path.exists(config_path):
+                with open(config_path, 'r') as f:
+                    config_data = yaml.safe_load(f)
+            elif os.path.exists(example_path):
+                with open(example_path, 'r') as f:
+                    config_data = yaml.safe_load(f)
+            else:
+                return jsonify({'error': 'No config file found'}), 404
             return jsonify(config_data)
         except Exception as e:
             return jsonify({'error': str(e)}), 500
