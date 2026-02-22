@@ -212,6 +212,10 @@ export class ConfigEditor extends LitElement {
     if (!this.config.routers.semantic[routerName].stages) {
       this.config.routers.semantic[routerName].stages = [];
     }
+    // Ensure stages is an array
+    if (!Array.isArray(this.config.routers.semantic[routerName].stages)) {
+      this.config.routers.semantic[routerName].stages = [];
+    }
     this.config.routers.semantic[routerName].stages.push({
       provider: '',
       model: '',

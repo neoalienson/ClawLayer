@@ -40,6 +40,18 @@ export class LogViewer extends LitElement {
     .section-header { font-weight: 600; color: #34495e; margin-bottom: 0.5rem; cursor: pointer; user-select: none; }
     .section-header:hover { background: #f8f9fa; }
     .message-preview { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #7f8c8d; font-style: italic; }
+    .router-details { margin-top: 0.5rem; }
+    .router-step { margin-bottom: 0.75rem; padding: 0.5rem; background: #f8f9fa; border-radius: 4px; }
+    .router-step strong { color: #2c3e50; }
+    .stage-info { font-size: 12px; color: #7f8c8d; margin-top: 0.25rem; font-family: monospace; }
+    .stage-requests { margin-top: 0.5rem; }
+    .stage-request { margin-bottom: 1rem; padding: 0.75rem; background: #f1f2f6; border-radius: 4px; }
+    .stage-header { display: flex; gap: 1rem; align-items: center; margin-bottom: 0.5rem; }
+    .stage-timing { background: #3498db; color: white; padding: 0.2rem 0.4rem; border-radius: 3px; font-size: 11px; }
+    .stage-model { background: #27ae60; color: white; padding: 0.2rem 0.4rem; border-radius: 3px; font-size: 11px; }
+    .request-section, .response-section, .error-section { margin-top: 0.5rem; }
+    .request-json { background: #ffffff; padding: 0.5rem; border-radius: 4px; font-size: 11px; overflow-x: auto; border: 1px solid #ddd; }
+    .error-text { background: #ffe6e6; color: #d63031; padding: 0.5rem; border-radius: 4px; font-size: 11px; }
   `;
   
   @state() logs: Log[] = [];
@@ -98,6 +110,13 @@ export class LogViewer extends LitElement {
         this.collapsedSections.add(`msg-${i}`);
       });
     }
+    // Collapse tried routers and all router stages by default
+    this.collapsedSections.add('tried-routers');
+    if ((log as any).tried_routers) {
+      (log as any).tried_routers.forEach((_: any, i: number) => {
+        this.collapsedSections.add(`router-${i}-stages`);
+      });
+    }
   }
   
   closeDetail() {
@@ -132,6 +151,15 @@ export class LogViewer extends LitElement {
       return content.text;
     }
     return JSON.stringify(content);
+  }
+  
+  getRouterStageData(log: any, routerIndex: number): any[] {
+    console.log('Getting stage data for router', routerIndex, 'log.stage_data:', log.stage_data);
+    // Extract stage data from the successful router's result
+    if (log.stage_data && Array.isArray(log.stage_data)) {
+      return log.stage_data;
+    }
+    return [];
   }
   
   toggleSection(sectionId: string) {
@@ -271,6 +299,69 @@ export class LogViewer extends LitElement {
               
               <div class="detail-label">Est. Tokens:</div>
               <div class="detail-value">${this.estimateTokens((log as any).request)}</div>
+              
+              ${(log as any).tried_routers ? html`
+                <div class="detail-label">Tried Routers:</div>
+                <div class="detail-value">
+                  <div class="section-header" @click=${() => this.toggleSection('tried-routers')}>
+                    <span class="expand-icon">${this.collapsedSections.has('tried-routers') ? '▶' : '▼'}</span> 
+                    ${(log as any).tried_routers.length} router(s) tried
+                  </div>
+                  ${this.collapsedSections.has('tried-routers') ? html`
+                    <div class="message-preview">${(log as any).tried_routers.join(' → ')}</div>
+                  ` : html`
+                    <div class="router-details">
+                      ${(log as any).tried_routers.map((router: string, i: number) => html`
+                        <div class="router-step">
+                          <strong>${i + 1}. ${router.split('[')[0].trim()}</strong>
+                          ${router.includes('[') ? html`
+                            <div class="stage-info">
+                              <div class="section-header" @click=${() => this.toggleSection(`router-${i}-stages`)}>
+                                <span class="expand-icon">${this.collapsedSections.has(`router-${i}-stages`) ? '▶' : '▼'}</span>
+                                ${router.split('[')[1]?.replace(']', '')}
+                              </div>
+                              ${!this.collapsedSections.has(`router-${i}-stages`) ? html`
+                                <div class="stage-requests">
+                                  ${this.getRouterStageData(log, i).map((stage: any, si: number) => html`
+                                    <div class="stage-request">
+                                      <div class="stage-header">
+                                        <strong>Stage ${stage.stage} (${stage.type})</strong>
+                                        ${stage.latency_ms ? html`<span class="stage-timing">${stage.latency_ms}ms</span>` : ''}
+                                        ${stage.model ? html`<span class="stage-model">${stage.model}</span>` : ''}
+                                      </div>
+                                      
+                                      ${stage.request ? html`
+                                        <div class="request-section">
+                                          <strong>Request:</strong>
+                                          <pre class="request-json">${JSON.stringify(stage.request, null, 2)}</pre>
+                                        </div>
+                                      ` : ''}
+                                      
+                                      ${stage.response ? html`
+                                        <div class="response-section">
+                                          <strong>Response:</strong>
+                                          <pre class="request-json">${JSON.stringify(stage.response, null, 2)}</pre>
+                                        </div>
+                                      ` : ''}
+                                      
+                                      ${stage.error ? html`
+                                        <div class="error-section">
+                                          <strong>Error:</strong>
+                                          <pre class="error-text">${stage.error}</pre>
+                                        </div>
+                                      ` : ''}
+                                    </div>
+                                  `)}
+                                </div>
+                              ` : ''}
+                            </div>
+                          ` : ''}
+                        </div>
+                      `)}
+                    </div>
+                  `}
+                </div>
+              ` : ''}
             </div>
           </div>
           

@@ -59,19 +59,55 @@ class ClawLayerApp:
         if self.verbose:
             self._log(f"🎯 ROUTE: {route_result.name}")
         
-        # Handle response
-        if route_result.should_proxy:
-            response = self._handle_proxy(data, context["stream"], route_result.name)
-            response_data = None  # Proxy responses not captured for now
-        else:
-            response, response_data = self._handle_static(route_result, context["stream"])
-        
-        # Record stats
-        latency_ms = (time.time() - start_time) * 1000
-        content = route_result.content if hasattr(route_result, 'content') else None
-        self.stats.record(message, route_result.name, latency_ms, content, request_data=data, response_data=response_data)
-        
-        return response
+        response_data = None
+        error_info = None
+        try:
+            # Handle response
+            if route_result.should_proxy:
+                response = self._handle_proxy(data, context["stream"], route_result.name)
+                # Debug: print what we got
+                if self.verbose:
+                    self._log(f"🔍 PROXY RESPONSE TYPE: {type(response)}, VALUE: {response}")
+                
+                # Handle both error tuples and success tuples
+                if isinstance(response, tuple) and len(response) == 2:
+                    response_obj, status_or_data = response
+                    
+                    # Check if this is an error response (status code 500)
+                    if status_or_data == 500:
+                        # Error case - extract error details
+                        if hasattr(response_obj, 'get_json'):
+                            error_data = response_obj.get_json()
+                            if error_data and 'error' in error_data:
+                                error_msg = error_data['error'].get('message', 'Unknown error')
+                                if 'details' in error_data['error']:
+                                    details = error_data['error']['details']
+                                    error_msg += f" (URL: {details.get('url', 'N/A')}, Model: {details.get('model', 'N/A')})"
+                                error_info = f"HTTP 500: {error_msg}"
+                                response_data = error_data
+                            else:
+                                error_info = "HTTP 500: Unknown error - no error data"
+                                response_data = None
+                        else:
+                            error_info = "HTTP 500: Unknown error - cannot extract JSON"
+                            response_data = None
+                    else:
+                        # Success case - status_or_data is the actual response data
+                        response_data = status_or_data
+                else:
+                    response_data = None
+            else:
+                response, response_data = self._handle_static(route_result, context["stream"])
+            
+            return response
+        finally:
+            # Always record stats, even on errors
+            latency_ms = (time.time() - start_time) * 1000
+            content = route_result.content if hasattr(route_result, 'content') else None
+            if error_info:
+                content = error_info
+            tried_routers = getattr(route_result, 'tried_routers', [])
+            self.stats.record(message, route_result.name, latency_ms, content, request_data=data, response_data=response_data, tried_routers=tried_routers, route_result=route_result)
     
     def _handle_static(self, route_result, stream: bool):
         """Handle static route response."""
@@ -93,17 +129,21 @@ class ClawLayerApp:
         
         result = self.llm_proxy.forward(data["messages"], stream)
         
+        # Check for error response
+        if isinstance(result, dict) and "error" in result:
+            return jsonify(result), 500
+        
         if stream:
             def proxy_stream():
                 for chunk in result:
                     if self.verbose >= 4:
                         self._log(f"📤 Chunk: {chunk[:100]}")
                     yield chunk
-            return Response(proxy_stream(), mimetype="text/event-stream")
+            return Response(proxy_stream(), mimetype="text/event-stream"), None
         else:
             if self.verbose >= 2:
                 self._log(f"🔍 LLM RESPONSE: {json.dumps(result, indent=2)[:500]}")
-            return jsonify(result)
+            return jsonify(result), result
     
     def _log(self, message: str):
         """Log message to stderr."""

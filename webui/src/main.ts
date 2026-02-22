@@ -10,7 +10,10 @@ export class App extends LitElement {
     :host { display: block; min-height: 100vh; background: #f5f6fa; }
     nav { background: #2c3e50; color: white; padding: 1rem 2rem; display: flex; align-items: center; gap: 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     h1 { margin: 0; font-size: 1.5rem; }
-    .tabs { display: flex; gap: 0.5rem; }
+    .tabs { display: flex; gap: 0.5rem; flex: 1; }
+    .github-link { margin-left: auto; }
+    .github-link a { color: white; text-decoration: none; padding: 0.5rem; border-radius: 4px; transition: background 0.2s; }
+    .github-link a:hover { background: rgba(255,255,255,0.1); }
     button { background: none; border: none; color: white; padding: 0.75rem 1.5rem; cursor: pointer; border-radius: 4px; font-size: 14px; transition: background 0.2s; }
     button:hover { background: rgba(255,255,255,0.1); }
     button.active { background: #34495e; }
@@ -39,6 +42,9 @@ export class App extends LitElement {
             @click=${() => this.currentTab = 'logs'}>
             Logs
           </button>
+        </div>
+        <div class="github-link">
+          <a href="https://github.com/neoalienson/ClawLayer" target="_blank">GitHub</a>
         </div>
       </nav>
       

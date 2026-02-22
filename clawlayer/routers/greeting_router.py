@@ -10,13 +10,18 @@ class GreetingRouter(SemanticBaseRouter):
     
     def route(self, message: str, context: Dict[str, Any]) -> Optional[RouteResult]:
         """Route with multi-stage cascading based on confidence thresholds."""
-        is_match, confidence, stage_idx = self._match_cascade(message, "greeting")
+        is_match, confidence, stage_idx, stage_details = self._match_cascade(message, "greeting")
+        
+        # Always store stage details for debugging
+        self._last_stage_details = stage_details
         
         if is_match:
             stage_info = f" (stage {stage_idx}, confidence: {confidence:.2f})" if len(self.cascade_stages) > 1 else ""
-            return RouteResult(
+            result = RouteResult(
                 name="greeting",
                 content=f"Hi (quick response{stage_info})"
             )
+            result.stage_details = stage_details
+            return result
         
         return None
