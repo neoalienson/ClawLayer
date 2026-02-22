@@ -173,6 +173,15 @@ export class ConfigEditor extends LitElement {
     this.requestUpdate();
   }
   
+  removeRouter(type: string, name: string) {
+    if (confirm(`Delete router "${name}"?`)) {
+      delete this.config.routers[type][name];
+      const priority = this.config.routers[type].priority || [];
+      this.config.routers[type].priority = priority.filter((n: string) => n !== name);
+      this.requestUpdate();
+    }
+  }
+  
   moveRouter(type: string, index: number, direction: number) {
     const priority = [...(this.config.routers[type]?.priority || [])];
     const newIndex = index + direction;
@@ -533,6 +542,7 @@ export class ConfigEditor extends LitElement {
               <div class="router-header">
                 <span>📋 ${name} Router</span>
                 <div class="router-controls">
+                  <button class="remove-btn" @click=${() => this.removeRouter('fast', name)}>Delete</button>
                   <button class="move-btn" ?disabled=${index === 0} @click=${() => this.moveRouter('fast', index, -1)}>↑</button>
                   <button class="move-btn" ?disabled=${index === (Array.isArray(routers.fast?.priority) ? routers.fast.priority : ['echo', 'command']).length - 1} @click=${() => this.moveRouter('fast', index, 1)}>↓</button>
                   <label>
@@ -569,6 +579,7 @@ export class ConfigEditor extends LitElement {
               <div class="router-header">
                 <span>🧠 ${name} Router</span>
                 <div class="router-controls">
+                  <button class="remove-btn" @click=${() => this.removeRouter('semantic', name)}>Delete</button>
                   <button class="move-btn" ?disabled=${index === 0} @click=${() => this.moveRouter('semantic', index, -1)}>↑</button>
                   <button class="move-btn" ?disabled=${index === (Array.isArray(routers.semantic?.priority) ? routers.semantic.priority : ['greeting', 'summarize']).length - 1} @click=${() => this.moveRouter('semantic', index, 1)}>↓</button>
                   <label>

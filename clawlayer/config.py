@@ -131,7 +131,14 @@ class Config:
         
         # Build router configs from both categories
         routers = {}
-        all_router_names = ['echo', 'command', 'greeting', 'summarize']
+        # Collect all router names from both fast and semantic configs
+        all_router_names = set()
+        for name in fast_config.keys():
+            if name != 'priority':
+                all_router_names.add(name)
+        for name in semantic_config.keys():
+            if name != 'priority':
+                all_router_names.add(name)
         
         for name in all_router_names:
             # Check in fast category first

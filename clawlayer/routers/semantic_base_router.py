@@ -51,19 +51,15 @@ class SemanticBaseRouter(Router):
         route_name = llm_config['route_name']
         
         # Build prompt for LLM
-        prompt = f"""Determine if the user's PRIMARY INTENT is a {route_name} request.
+        prompt = f"""Determine if the user's message matches a {route_name} request.
 
 Example {route_name} requests:
 {chr(10).join('- ' + u for u in utterances)}
 
-IMPORTANT: Only match if the user is DIRECTLY making a {route_name} request. Do NOT match if:
-- The message only MENTIONS {route_name} as part of instructions or system messages
-- The message is asking the AI to perform a {route_name} action (not the user greeting)
-- The {route_name} keyword appears in quoted text or metadata
-
 User message: "{message}"
 
-Respond with ONLY a JSON object: {{"is_match": true/false, "confidence": 0.0-1.0}}"""
+Respond with ONLY a JSON object: {{"is_match": true, "confidence": 0.0-1.0}}
+where confidence indicates how similar the message is to the examples (1.0 = exact match, 0.0 = completely different)."""
         
         request_data = {
             "model": model,

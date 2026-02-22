@@ -164,3 +164,59 @@ class TestConfig(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestDynamicRouterLoading(unittest.TestCase):
+    """Test dynamic router discovery from config."""
+    
+    def test_loads_custom_fast_router(self):
+        """Test that custom fast routers are loaded from config."""
+        import tempfile
+        config_yaml = """
+routers:
+  fast:
+    priority:
+      - echo
+      - fast_greet
+    echo:
+      enabled: true
+    fast_greet:
+      enabled: true
+      pattern: "^(hi|hello)$"
+"""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yml', delete=False) as f:
+            f.write(config_yaml)
+            temp_path = f.name
+        
+        try:
+            config = Config.from_yaml(temp_path)
+            
+            self.assertIn('fast_greet', config.routers)
+            self.assertTrue(config.routers['fast_greet'].enabled)
+            self.assertEqual(config.routers['fast_greet'].options['pattern'], '^(hi|hello)$')
+            self.assertIn('fast_greet', config.fast_router_priority)
+        finally:
+            os.unlink(temp_path)
+    
+    def test_excludes_priority_key(self):
+        """Test that 'priority' key is not treated as a router."""
+        import tempfile
+        config_yaml = """
+routers:
+  fast:
+    priority:
+      - echo
+    echo:
+      enabled: true
+"""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yml', delete=False) as f:
+            f.write(config_yaml)
+            temp_path = f.name
+        
+        try:
+            config = Config.from_yaml(temp_path)
+            
+            self.assertNotIn('priority', config.routers)
+            self.assertIn('echo', config.routers)
+        finally:
+            os.unlink(temp_path)

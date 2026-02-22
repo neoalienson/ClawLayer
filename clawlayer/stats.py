@@ -13,6 +13,7 @@ class StatsCollector:
         self.latencies = []
         self.logs = deque(maxlen=max_logs)
         self.start_time = time.time()
+        self.log_id_counter = 0
     
     def record(self, message, router_name, latency_ms, content=None, request_data=None, response_data=None, tried_routers=None, route_result=None):
         """Record a routing request."""
@@ -28,7 +29,9 @@ class StatsCollector:
             elif hasattr(route_result, 'stage_details') and route_result.stage_details:
                 stage_data = route_result.stage_details
         
+        self.log_id_counter += 1
         self.logs.append({
+            'id': self.log_id_counter,
             'timestamp': time.time(),
             'message': message[:100],  # Truncate for list view
             'router': router_name,
@@ -56,6 +59,14 @@ class StatsCollector:
             'avg_latency': round(self.avg_latency(), 2),
             'uptime': round(time.time() - self.start_time, 0)
         }
+    
+    def delete_log(self, log_id: int) -> bool:
+        """Delete a log entry by ID."""
+        for i, log in enumerate(self.logs):
+            if log['id'] == log_id:
+                del self.logs[i]
+                return True
+        return False
     
     def get_recent_logs(self, limit=50):
         """Get recent logs."""

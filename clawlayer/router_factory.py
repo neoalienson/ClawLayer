@@ -5,6 +5,7 @@ from clawlayer.routers import (
     Router, EchoRouter, CommandRouter,
     GreetingRouter, SummarizeRouter
 )
+from clawlayer.routers.quick_router import QuickRouter  # Import to trigger registration
 from clawlayer.config import Config
 
 
@@ -152,6 +153,12 @@ class RouterFactory:
         if not router_config or not router_config.enabled:
             return None
         
+        # Try registry first
+        router = Router.create(router_name, router_config)
+        if router:
+            return router
+        
+        # Fallback to hardcoded routers
         if router_name == 'echo':
             return EchoRouter()
         

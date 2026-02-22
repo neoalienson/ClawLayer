@@ -45,10 +45,17 @@ routers:
   fast:
     priority:
       - echo      # Tool result detection
+      - fast_greet  # Fast greeting pattern matching
       - command   # Command prefix detection
     
     echo:
       enabled: true
+    
+    fast_greet:
+      enabled: true
+      patterns:
+        - pattern: "^(hi|hello|hey)$"
+          response: "Hi"
     
     command:
       enabled: true

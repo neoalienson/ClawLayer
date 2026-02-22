@@ -8,12 +8,14 @@ export class LogViewer extends LitElement {
     :host { display: block; padding: 2rem; }
     h1 { margin: 0 0 1rem 0; color: #2c3e50; }
     .logs { background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); max-height: 600px; overflow-y: auto; }
-    .log-entry { display: grid; grid-template-columns: 100px 1fr 150px 80px; gap: 1rem; padding: 0.75rem 1rem; border-bottom: 1px solid #ecf0f1; font-size: 14px; cursor: pointer; }
+    .log-entry { display: grid; grid-template-columns: 100px 1fr 150px 80px 40px; gap: 1rem; padding: 0.75rem 1rem; border-bottom: 1px solid #ecf0f1; font-size: 14px; cursor: pointer; }
     .log-entry:hover { background: #f8f9fa; }
     .log-time { color: #7f8c8d; }
     .log-message { font-family: monospace; }
     .log-router { font-weight: 500; color: #3498db; }
     .log-latency { text-align: right; color: #7f8c8d; }
+    .delete-btn { background: #e74c3c; color: white; border: none; border-radius: 4px; padding: 0.25rem 0.5rem; cursor: pointer; font-size: 12px; }
+    .delete-btn:hover { background: #c0392b; }
     .empty { padding: 2rem; text-align: center; color: #7f8c8d; }
     
     .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
@@ -456,6 +458,18 @@ export class LogViewer extends LitElement {
     `;
   }
   
+  async deleteLog(logId: number, event: Event) {
+    event.stopPropagation();
+    try {
+      const response = await fetch(`/api/logs/${logId}`, { method: 'DELETE' });
+      if (response.ok) {
+        this.logs = this.logs.filter(log => (log as any).id !== logId);
+      }
+    } catch (e) {
+      console.error('Failed to delete log:', e);
+    }
+  }
+  
   render() {
     return html`
       <h1>Request Logs</h1>
@@ -468,8 +482,9 @@ export class LogViewer extends LitElement {
             <div class="log-message">${log.message}</div>
             <div class="log-router">${log.router}</div>
             <div class="log-latency">${log.latency_ms.toFixed(1)}ms</div>
+            <button class="delete-btn" @click=${(e: Event) => this.deleteLog((log as any).id, e)}>×</button>
           </div>
-        `)}
+        `)}}
       </div>
       ${this.renderModal()}
     `;

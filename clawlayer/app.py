@@ -32,6 +32,7 @@ class ClawLayerApp:
         """Setup Flask routes."""
         self.app.route("/v1/models", methods=["GET"])(self.models)
         self.app.route("/v1/chat/completions", methods=["POST"])(self.chat_completions)
+        self.app.route("/api/logs/<int:log_id>", methods=["DELETE"])(self.delete_log)
     
     def models(self):
         """Return available models."""
@@ -128,6 +129,12 @@ class ClawLayerApp:
             if self.verbose:
                 self._log(f"ERROR: {str(e)}")
             raise
+    
+    def delete_log(self, log_id: int):
+        """Delete a specific log entry."""
+        if self.stats.delete_log(log_id):
+            return jsonify({"success": True}), 200
+        return jsonify({"error": "Log not found"}), 404
     
     def _handle_static(self, route_result, stream: bool):
         """Handle static route response."""
