@@ -42,7 +42,7 @@ class LLMProxy:
                     print(f"Response: {response_text}", file=sys.stderr)
                 print(f"{'='*60}\n", file=sys.stderr)
                 
-                return {
+                error_response = {
                     "error": {
                         "message": f"HTTP {response.status_code}: {response.text}",
                         "type": "http_error",
@@ -53,6 +53,7 @@ class LLMProxy:
                         }
                     }
                 }
+                return error_response, request_data
             
             if stream:
                 return self._stream_response(response), request_data
@@ -69,7 +70,7 @@ class LLMProxy:
             print(f"{'='*60}\n", file=sys.stderr)
             
             # Return error response in OpenAI format with details
-            return {
+            error_response = {
                 "error": {
                     "message": f"LLM proxy error: {str(e)}",
                     "type": "connection_error",
@@ -80,6 +81,7 @@ class LLMProxy:
                     }
                 }
             }
+            return error_response, request_data
     
     def _stream_response(self, response) -> Iterator[str]:
         """Stream response from LLM."""
