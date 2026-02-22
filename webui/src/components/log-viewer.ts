@@ -315,37 +315,47 @@ export class LogViewer extends LitElement {
                   ` : html`
                     <div class="router-details">
                       ${(log as any).tried_routers.map((router: any, i: number) => {
-                        const routerName = typeof router === 'string' ? router : router.name || 'unknown';
+                        const routerName = typeof router === 'string' ? router : (router.name || router.router_name || 'unknown');
                         const routerData = typeof router === 'object' ? router : null;
+                        const stageData = routerData?.stage_data || [];
                         return html`
                         <div class="router-step">
                           <strong>${i + 1}. ${routerName.split('[')[0].trim()}</strong>
-                          ${routerName.includes('[') ? html`
+                          ${stageData.length > 0 ? html`
                             <div class="stage-info">
                               <div class="section-header" @click=${() => this.toggleSection(`router-${i}-stages`)}>
                                 <span class="expand-icon">${this.collapsedSections.has(`router-${i}-stages`) ? '▶' : '▼'}</span>
-                                ${routerName.split('[')[1]?.replace(']', '')}
+                                ${stageData.length} stage(s)
                               </div>
                               ${!this.collapsedSections.has(`router-${i}-stages`) ? html`
                                 <div class="stage-requests">
-                                  ${this.getRouterStageData(log, i).map((stage: any, si: number) => html`
+                                  ${stageData.map((stage: any) => html`
                                     <div class="stage-request">
                                       <div class="stage-header">
                                         <strong>Stage ${stage.stage} (${stage.type})</strong>
                                         ${stage.latency_ms ? html`<span class="stage-timing">${stage.latency_ms}ms</span>` : ''}
                                         ${stage.model ? html`<span class="stage-model">${stage.model}</span>` : ''}
                                       </div>
+                                      ${stage.confidence !== undefined ? html`
+                                        <div style="font-size: 11px; color: #7f8c8d; margin-top: 0.25rem;">
+                                          Confidence: ${stage.confidence.toFixed(3)} / Threshold: ${stage.threshold} → ${stage.result}
+                                        </div>
+                                      ` : stage.result ? html`
+                                        <div style="font-size: 11px; color: #7f8c8d; margin-top: 0.25rem;">
+                                          ${stage.result}
+                                        </div>
+                                      ` : ''}
                                       
-                                      ${stage.request ? html`
+                                      ${stage.type === 'LLM' && stage.request ? html`
                                         <div class="request-section">
-                                          <strong>Request:</strong>
+                                          <strong>LLM Classification Request:</strong>
                                           <pre class="request-json">${JSON.stringify(stage.request, null, 2)}</pre>
                                         </div>
                                       ` : ''}
                                       
-                                      ${stage.response ? html`
+                                      ${stage.type === 'LLM' && stage.response ? html`
                                         <div class="response-section">
-                                          <strong>Response:</strong>
+                                          <strong>LLM Classification Response:</strong>
                                           <pre class="request-json">${JSON.stringify(stage.response, null, 2)}</pre>
                                         </div>
                                       ` : ''}
@@ -362,7 +372,7 @@ export class LogViewer extends LitElement {
                               ` : ''}
                             </div>
                           ` : ''}
-                          ${routerData ? html`
+                          ${routerData && (routerName.includes('llm_fallback') || routerData.name === 'llm_fallback') ? html`
                             <div class="stage-info">
                               <div class="section-header" @click=${() => this.toggleSection(`router-${i}-data`)}>
                                 <span class="expand-icon">${this.collapsedSections.has(`router-${i}-data`) ? '▶' : '▼'}</span>
@@ -379,13 +389,25 @@ export class LogViewer extends LitElement {
                                   ${routerData.response ? html`
                                     <div class="response-section">
                                       <strong>Response:</strong>
-                                      <pre class="request-json">${JSON.stringify(routerData.response, null, 2)}</pre>
+                                      ${routerData.response.combined_content ? html`
+                                        <div class="detail-content" style="background: #f8f9fa; padding: 0.5rem; margin-top: 0.5rem;">
+                                          ${routerData.response.combined_content}
+                                        </div>
+                                        ${routerData.response.chunks ? html`
+                                          <details style="margin-top: 0.5rem;">
+                                            <summary style="cursor: pointer; color: #7f8c8d; font-size: 11px;">Show raw chunks (${routerData.response.chunks.length})</summary>
+                                            <pre class="request-json">${JSON.stringify(routerData.response.chunks, null, 2)}</pre>
+                                          </details>
+                                        ` : ''}
+                                      ` : html`
+                                        <pre class="request-json">${JSON.stringify(routerData.response, null, 2)}</pre>
+                                      `}
                                     </div>
                                   ` : ''}
                                 </div>
                               ` : ''}
                             </div>
-                          ` : ''}}}
+                          ` : ''}
                         </div>
                       `})}
                     </div>

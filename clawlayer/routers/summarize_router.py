@@ -37,14 +37,4 @@ No user goal provided in the conversation.
     
     def route(self, message: str, context: Dict[str, Any]) -> Optional[RouteResult]:
         """Route with multi-stage cascading based on confidence thresholds."""
-        is_match, confidence, stage_idx, stage_details = self._match_cascade(message, "summarize")
-        
-        # Always store stage details for debugging
-        self._last_stage_details = stage_details
-        
-        if is_match:
-            result = RouteResult(name="summarize", content=self.template)
-            result.stage_details = stage_details
-            return result
-        
-        return None
+        return self._route_with_cascade(message, context, "summarize", self.template)

@@ -41,6 +41,7 @@ class RouterChain:
                         stage_summaries.append(str(detail))
                 stage_info = f" [{'; '.join(stage_summaries)}]"
                 router_stage_data = result.stage_details
+                print(f"DEBUG: Router {router_name} has stage_details: {len(router_stage_data)} stages", flush=True)
             elif not result and hasattr(router, '_last_stage_details') and router._last_stage_details:
                 # For failed semantic routers, get stored stage details
                 stage_summaries = []
@@ -59,8 +60,13 @@ class RouterChain:
                         stage_summaries.append(str(detail))
                 stage_info = f" [{'; '.join(stage_summaries)}]"
                 router_stage_data = router._last_stage_details
+                print(f"DEBUG: Router {router_name} FAILED but has _last_stage_details: {len(router_stage_data)} stages", flush=True)
             
-            tried_routers.append(f"{router_name}{stage_info}")
+            tried_routers.append({
+                'name': f"{router_name}{stage_info}",
+                'router_name': router_name,
+                'stage_data': router_stage_data
+            })
             all_stage_data.extend(router_stage_data)
             
             if result:

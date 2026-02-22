@@ -66,17 +66,17 @@ class ClawLayerApp:
         try:
             # Handle response
             if route_result.should_proxy:
-                response = self._handle_proxy(data, context["stream"], route_result.name)
+                response_tuple = self._handle_proxy(data, context["stream"], route_result.name)
                 # Debug: print what we got
                 if self.verbose:
-                    self._log(f"🔍 PROXY RESPONSE TYPE: {type(response)}, VALUE: {response}")
+                    self._log(f"🔍 PROXY RESPONSE TYPE: {type(response_tuple)}, LEN: {len(response_tuple) if isinstance(response_tuple, tuple) else 'N/A'}")
                 
-                # Handle both error tuples and success tuples (now with 3 elements)
-                if isinstance(response, tuple) and len(response) == 3:
-                    response_obj, status_or_data, fallback_request = response
+                # Handle 4-element tuple: (response_obj, status_code, fallback_request, response_data)
+                if isinstance(response_tuple, tuple) and len(response_tuple) == 4:
+                    response_obj, status_code, fallback_request, response_data = response_tuple
                     
                     # Check if this is an error response (status code 500)
-                    if status_or_data == 500:
+                    if status_code == 500:
                         # Error case - extract error details
                         if hasattr(response_obj, 'get_json'):
                             error_data = response_obj.get_json()
@@ -93,10 +93,12 @@ class ClawLayerApp:
                         else:
                             error_info = "HTTP 500: Unknown error - cannot extract JSON"
                             response_data = None
-                    else:
-                        # Success case - status_or_data is the actual response data
-                        response_data = status_or_data
+                    
+                    response = response_obj
+                    if self.verbose:
+                        self._log(f"Captured response_data: {bool(response_data)}, type: {type(response_data)}")
                 else:
+                    response = response_tuple
                     response_data = None
             else:
                 response, response_data = self._handle_static(route_result, context["stream"])
@@ -156,21 +158,42 @@ class ClawLayerApp:
         
         # Check for error response
         if isinstance(result, dict) and "error" in result:
-            return jsonify(result), 500, request_data
+            return jsonify(result), 500, request_data, None
         
         if stream:
+            # Capture streaming response by wrapping the generator
+            captured_response = {'chunks': [], 'combined_content': ''}
+            
             def proxy_stream():
                 for chunk in result:
+                    # Store chunk for later inspection
+                    captured_response['chunks'].append(chunk)
+                    
+                    # Parse SSE chunk to extract content
+                    try:
+                        if chunk.startswith('data: ') and chunk != 'data: [DONE]\n\n':
+                            json_str = chunk[6:].strip()
+                            if json_str:
+                                chunk_data = json.loads(json_str)
+                                if 'choices' in chunk_data and len(chunk_data['choices']) > 0:
+                                    delta = chunk_data['choices'][0].get('delta', {})
+                                    content = delta.get('content', '')
+                                    if content:
+                                        captured_response['combined_content'] += content
+                    except:
+                        pass  # Skip malformed chunks
+                    
                     if self.verbose >= 4:
                         self._log(f"📤 Chunk: {chunk[:100]}")
                     yield chunk
-            return Response(proxy_stream(), mimetype="text/event-stream"), None, request_data
+            
+            return Response(proxy_stream(), mimetype="text/event-stream"), None, request_data, captured_response
         else:
             if self.verbose >= 2:
                 self._log(f"LLM RESPONSE: {json.dumps(result, indent=2)[:500]}")
             resp = jsonify(result)
             resp.headers['Content-Type'] = 'application/json; charset=utf-8'
-            return resp, result, request_data
+            return resp, None, request_data, result
     
     def _log(self, message: str):
         """Log message to stderr."""

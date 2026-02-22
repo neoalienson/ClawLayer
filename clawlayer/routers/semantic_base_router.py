@@ -16,6 +16,21 @@ class SemanticBaseRouter(Router):
             cascade_stages: List of (matcher, threshold, type) tuples where type is 'embedding' or 'llm'
         """
         self.cascade_stages = cascade_stages or []
+        self._last_stage_details = []  # Always initialize to ensure it exists
+    
+    def _pre_filter(self, message: str, context: Dict[str, Any]) -> Optional[str]:
+        """Pre-filter hook for subclasses to reject messages early.
+        
+        Args:
+            message: User message
+            context: Request context
+            
+        Returns:
+            Rejection reason string if message should be rejected, None otherwise
+        """
+        # Default: no pre-filtering
+        # Subclasses can override to add custom pre-filters
+        return None
     
     def _match_with_llm(self, message: str, llm_config: Dict) -> Tuple[bool, float, Dict]:
         """Match message using LLM.
@@ -213,3 +228,50 @@ Respond with ONLY a JSON object: {{"is_match": true/false, "confidence": 0.0-1.0
     def route(self, message: str, context: Dict[str, Any]) -> Optional[RouteResult]:
         """Route with multi-stage cascading. Override in subclass."""
         raise NotImplementedError("Subclass must implement route()")
+    
+    def _route_with_cascade(self, message: str, context: Dict[str, Any], route_name: str, response_content: str) -> Optional[RouteResult]:
+        """Standard routing with cascade and pre-filter support.
+        
+        This method enforces the pattern:
+        1. Check pre-filter
+        2. Run cascade matching
+        3. Store stage details
+        4. Return result
+        
+        Args:
+            message: User message
+            context: Request context
+            route_name: Name of the route (e.g., 'greeting', 'summarize')
+            response_content: Content to return if matched
+            
+        Returns:
+            RouteResult if matched, None otherwise
+        """
+        # Check pre-filter
+        rejection_reason = self._pre_filter(message, context)
+        if rejection_reason:
+            # Store rejection info for tried_routers
+            self._last_stage_details = [{
+                'stage': 0,
+                'type': 'Pre-filter',
+                'result': f'rejected: {rejection_reason}',
+                'latency_ms': 0
+            }]
+            return None
+        
+        # Run cascade matching
+        is_match, confidence, stage_idx, stage_details = self._match_cascade(message, route_name)
+        
+        # Always store stage details for debugging
+        self._last_stage_details = stage_details
+        
+        if is_match:
+            stage_info = f" (stage {stage_idx}, confidence: {confidence:.2f})" if len(self.cascade_stages) > 1 else ""
+            result = RouteResult(
+                name=route_name,
+                content=f"{response_content}{stage_info}"
+            )
+            result.stage_details = stage_details
+            return result
+        
+        return None
