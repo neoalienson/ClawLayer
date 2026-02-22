@@ -12,7 +12,7 @@ echo ""
 
 # Start Python backend in background
 cd "$(dirname "$0")"
-python run.py -v &
+python run.py &
 BACKEND_PID=$!
 
 # Wait for backend to start

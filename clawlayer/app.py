@@ -59,7 +59,7 @@ class ClawLayerApp:
         # Record stats
         latency_ms = (time.time() - start_time) * 1000
         content = route_result.content if hasattr(route_result, 'content') else None
-        self.stats.record(message, route_result.name, latency_ms, content)
+        self.stats.record(message, route_result.name, latency_ms, content, request_data=data)
         
         if self.verbose:
             self._log(f"🎯 ROUTE: {route_result.name}")

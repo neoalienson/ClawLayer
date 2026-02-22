@@ -14,7 +14,7 @@ class StatsCollector:
         self.logs = deque(maxlen=max_logs)
         self.start_time = time.time()
     
-    def record(self, message, router_name, latency_ms, content=None):
+    def record(self, message, router_name, latency_ms, content=None, request_data=None, response_data=None):
         """Record a routing request."""
         self.requests += 1
         self.router_hits[router_name] += 1
@@ -22,10 +22,14 @@ class StatsCollector:
         
         self.logs.append({
             'timestamp': time.time(),
-            'message': message[:100],  # Truncate long messages
+            'message': message[:100],  # Truncate for list view
             'router': router_name,
             'latency_ms': round(latency_ms, 2),
-            'content': content[:50] if content else None
+            'content': content[:50] if content else None,
+            'full_message': message,  # Full message for detail view
+            'full_content': content,  # Full content for detail view
+            'request': request_data,  # Full request data
+            'response': response_data  # Full response data
         })
     
     def avg_latency(self):
