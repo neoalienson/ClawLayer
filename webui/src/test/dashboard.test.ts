@@ -25,6 +25,9 @@ describe('Dashboard', () => {
     vi.mocked(EventSource).mockImplementation(() => mockEventSource);
     
     dashboard = new Dashboard();
+    // Initialize stats to prevent undefined errors
+    dashboard.stats = { requests: 0, router_hits: {}, avg_latency: 0, uptime: 0 };
+    dashboard.routers = [];
     document.body.appendChild(dashboard);
   });
 

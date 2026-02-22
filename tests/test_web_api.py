@@ -43,9 +43,12 @@ class TestWebAPI(unittest.TestCase):
     
     def test_sse_events_endpoint(self):
         """Test SSE events endpoint returns proper headers."""
+        # Mock router_chain.routers to be iterable
+        self.router_chain.routers = []
+        
         response = self.client.get('/api/events')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.mimetype, 'text/plain')
+        self.assertEqual(response.mimetype, 'text/event-stream')
         self.assertIn('no-cache', response.headers.get('Cache-Control', ''))
         self.assertIn('keep-alive', response.headers.get('Connection', ''))
 

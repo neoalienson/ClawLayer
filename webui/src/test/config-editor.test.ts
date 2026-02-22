@@ -17,6 +17,13 @@ describe('ConfigEditor', () => {
     vi.mocked(ClawLayerClient).mockImplementation(() => mockClient);
     
     editor = new ConfigEditor();
+    // Initialize config to prevent undefined errors
+    editor.config = {
+      providers: {},
+      defaults: {},
+      server: { port: 11435 },
+      routers: { fast: {}, semantic: {} }
+    };
     document.body.appendChild(editor);
   });
 
