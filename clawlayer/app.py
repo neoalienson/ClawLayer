@@ -10,6 +10,8 @@ from clawlayer.routers import RouterChain
 from clawlayer.router_factory import RouterFactory
 from clawlayer.handler import MessageHandler, ResponseGenerator
 from clawlayer.proxy import LLMProxy
+from clawlayer.stats import StatsCollector
+from clawlayer.web_api import register_web_api
 
 
 class ClawLayerApp:
@@ -20,8 +22,10 @@ class ClawLayerApp:
         self.router_chain = router_chain
         self.llm_proxy = llm_proxy
         self.verbose = verbose
+        self.stats = StatsCollector()
         self.app = Flask(__name__)
         self._setup_routes()
+        register_web_api(self.app, self.stats, self.config, self.router_chain)
     
     def _setup_routes(self):
         """Setup Flask routes."""
@@ -34,6 +38,9 @@ class ClawLayerApp:
     
     def chat_completions(self):
         """Handle chat completion requests."""
+        import time
+        start_time = time.time()
+        
         data = request.json
         
         if self.verbose >= 2:
@@ -48,6 +55,11 @@ class ClawLayerApp:
         
         # Route the message
         route_result = self.router_chain.route(message, context)
+        
+        # Record stats
+        latency_ms = (time.time() - start_time) * 1000
+        content = route_result.content if hasattr(route_result, 'content') else None
+        self.stats.record(message, route_result.name, latency_ms, content)
         
         if self.verbose:
             self._log(f"🎯 ROUTE: {route_result.name}")
