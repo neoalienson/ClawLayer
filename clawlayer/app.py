@@ -24,6 +24,7 @@ class ClawLayerApp:
         self.verbose = verbose
         self.stats = StatsCollector()
         self.app = Flask(__name__)
+        self.app.config['JSON_AS_ASCII'] = False  # Allow unicode in JSON responses
         self._setup_routes()
         register_web_api(self.app, self.stats, self.config, self.router_chain)
     
