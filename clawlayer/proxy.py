@@ -13,14 +13,16 @@ class LLMProxy:
     
     def forward(self, messages: list, stream: bool = False) -> Any:
         """Forward request to LLM."""
+        request_data = {
+            "model": self.model,
+            "messages": messages,
+            "stream": stream
+        }
+        
         try:
             response = requests.post(
                 self.url,
-                json={
-                    "model": self.model,
-                    "messages": messages,
-                    "stream": stream
-                },
+                json=request_data,
                 stream=stream,
                 timeout=30
             )
@@ -33,7 +35,11 @@ class LLMProxy:
                 print(f"LLM PROXY HTTP ERROR: {response.status_code}", file=sys.stderr)
                 print(f"URL: {self.url}", file=sys.stderr)
                 print(f"Model: {self.model}", file=sys.stderr)
-                print(f"Response: {response.text[:500]}", file=sys.stderr)
+                response_text = getattr(response, 'text', 'N/A')
+                if hasattr(response_text, '__getitem__'):
+                    print(f"Response: {response_text[:500]}", file=sys.stderr)
+                else:
+                    print(f"Response: {response_text}", file=sys.stderr)
                 print(f"{'='*60}\n", file=sys.stderr)
                 
                 return {
@@ -49,9 +55,10 @@ class LLMProxy:
                 }
             
             if stream:
-                return self._stream_response(response)
+                return self._stream_response(response), request_data
             else:
-                return response.json()
+                response_json = response.json()
+                return response_json, request_data
         except requests.exceptions.RequestException as e:
             # Log the error
             import sys

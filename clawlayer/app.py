@@ -61,6 +61,7 @@ class ClawLayerApp:
         
         response_data = None
         error_info = None
+        fallback_request = None
         try:
             # Handle response
             if route_result.should_proxy:
@@ -69,9 +70,9 @@ class ClawLayerApp:
                 if self.verbose:
                     self._log(f"🔍 PROXY RESPONSE TYPE: {type(response)}, VALUE: {response}")
                 
-                # Handle both error tuples and success tuples
-                if isinstance(response, tuple) and len(response) == 2:
-                    response_obj, status_or_data = response
+                # Handle both error tuples and success tuples (now with 3 elements)
+                if isinstance(response, tuple) and len(response) == 3:
+                    response_obj, status_or_data, fallback_request = response
                     
                     # Check if this is an error response (status code 500)
                     if status_or_data == 500:
@@ -107,6 +108,15 @@ class ClawLayerApp:
             if error_info:
                 content = error_info
             tried_routers = getattr(route_result, 'tried_routers', [])
+            
+            # Add fallback info to tried_routers if this was a proxy call
+            if route_result.should_proxy and fallback_request:
+                tried_routers.append({
+                    'name': 'llm_fallback',
+                    'request': fallback_request,
+                    'response': response_data
+                })
+            
             self.stats.record(message, route_result.name, latency_ms, content, request_data=data, response_data=response_data, tried_routers=tried_routers, route_result=route_result)
     
     def _handle_static(self, route_result, stream: bool):
@@ -129,9 +139,14 @@ class ClawLayerApp:
         
         result = self.llm_proxy.forward(data["messages"], stream)
         
+        # Extract request_data if available
+        request_data = None
+        if isinstance(result, tuple) and len(result) == 2:
+            result, request_data = result
+        
         # Check for error response
         if isinstance(result, dict) and "error" in result:
-            return jsonify(result), 500
+            return jsonify(result), 500, request_data
         
         if stream:
             def proxy_stream():
@@ -139,11 +154,11 @@ class ClawLayerApp:
                     if self.verbose >= 4:
                         self._log(f"📤 Chunk: {chunk[:100]}")
                     yield chunk
-            return Response(proxy_stream(), mimetype="text/event-stream"), None
+            return Response(proxy_stream(), mimetype="text/event-stream"), None, request_data
         else:
             if self.verbose >= 2:
                 self._log(f"🔍 LLM RESPONSE: {json.dumps(result, indent=2)[:500]}")
-            return jsonify(result), result
+            return jsonify(result), result, request_data
     
     def _log(self, message: str):
         """Log message to stderr."""

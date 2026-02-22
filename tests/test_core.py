@@ -88,26 +88,31 @@ class TestLLMProxy(unittest.TestCase):
     @patch('clawlayer.proxy.requests.post')
     def test_forward_non_streaming(self, mock_post):
         mock_response = Mock()
+        mock_response.status_code = 200
         mock_response.json.return_value = {"result": "test"}
         mock_post.return_value = mock_response
         
         proxy = LLMProxy("http://test.com", "model")
-        result = proxy.forward([{"role": "user", "content": "test"}], stream=False)
+        result, request_data = proxy.forward([{"role": "user", "content": "test"}], stream=False)
         
         self.assertEqual(result, {"result": "test"})
+        self.assertIsNotNone(request_data)
         mock_post.assert_called_once()
     
     @patch('clawlayer.proxy.requests.post')
     def test_forward_streaming(self, mock_post):
         mock_response = Mock()
+        mock_response.status_code = 200
         mock_response.iter_lines.return_value = [b"data: test"]
         mock_post.return_value = mock_response
         
         proxy = LLMProxy("http://test.com", "model")
-        result = list(proxy.forward([{"role": "user", "content": "test"}], stream=True))
+        stream_result, request_data = proxy.forward([{"role": "user", "content": "test"}], stream=True)
+        result = list(stream_result)
         
         self.assertEqual(len(result), 1)
         self.assertIn("data: test", result[0])
+        self.assertIsNotNone(request_data)
 
 
 if __name__ == "__main__":
