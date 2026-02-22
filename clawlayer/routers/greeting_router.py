@@ -10,6 +10,16 @@ class GreetingRouter(SemanticBaseRouter):
     
     def route(self, message: str, context: Dict[str, Any]) -> Optional[RouteResult]:
         """Route with multi-stage cascading based on confidence thresholds."""
+        # Pre-filter: reject obvious system messages
+        msg_lower = message.lower()
+        if any([
+            message.startswith('System:'),
+            'greet the user' in msg_lower,
+            'please read them' in msg_lower,
+            len(message) > 500  # Greetings are typically short
+        ]):
+            return None
+        
         is_match, confidence, stage_idx, stage_details = self._match_cascade(message, "greeting")
         
         # Always store stage details for debugging

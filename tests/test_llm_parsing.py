@@ -3,6 +3,7 @@
 import unittest
 from unittest.mock import Mock, patch
 from clawlayer.routers.semantic_base_router import SemanticBaseRouter
+from clawlayer.routers.greeting_router import GreetingRouter
 
 
 class TestLLMResponseParsing(unittest.TestCase):
@@ -182,3 +183,35 @@ class TestLLMResponseParsing(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class TestGreetingRouterPreFilter(unittest.TestCase):
+    """Test greeting router pre-filter for system messages."""
+    
+    def setUp(self):
+        """Set up test fixtures."""
+        self.router = GreetingRouter()
+    
+    def test_system_message_prefix(self):
+        """Test rejection of messages starting with 'System:'."""
+        message = "System: [2026-02-22] Please greet the user."
+        result = self.router.route(message, {})
+        self.assertIsNone(result)
+    
+    def test_greet_the_user_instruction(self):
+        """Test rejection of messages containing 'greet the user'."""
+        message = "A new session was started. Greet the user in your configured persona."
+        result = self.router.route(message, {})
+        self.assertIsNone(result)
+    
+    def test_long_system_message(self):
+        """Test rejection of very long messages (>500 chars)."""
+        message = "x" * 501
+        result = self.router.route(message, {})
+        self.assertIsNone(result)
+    
+    def test_please_read_instruction(self):
+        """Test rejection of messages with 'please read them'."""
+        message = "Please read them now using the Read tool before continuing."
+        result = self.router.route(message, {})
+        self.assertIsNone(result)
