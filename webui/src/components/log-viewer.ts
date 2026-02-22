@@ -115,6 +115,7 @@ export class LogViewer extends LitElement {
     if ((log as any).tried_routers) {
       (log as any).tried_routers.forEach((_: any, i: number) => {
         this.collapsedSections.add(`router-${i}-stages`);
+        this.collapsedSections.add(`router-${i}-data`);
       });
     }
   }
@@ -361,22 +362,30 @@ export class LogViewer extends LitElement {
                               ` : ''}
                             </div>
                           ` : ''}
-                          ${routerData?.request || routerData?.response ? html`
-                            <div class="stage-requests">
-                              ${routerData.request ? html`
-                                <div class="request-section">
-                                  <strong>Request:</strong>
-                                  <pre class="request-json">${JSON.stringify(routerData.request, null, 2)}</pre>
-                                </div>
-                              ` : ''}
-                              ${routerData.response ? html`
-                                <div class="response-section">
-                                  <strong>Response:</strong>
-                                  <pre class="request-json">${JSON.stringify(routerData.response, null, 2)}</pre>
+                          ${routerData ? html`
+                            <div class="stage-info">
+                              <div class="section-header" @click=${() => this.toggleSection(`router-${i}-data`)}>
+                                <span class="expand-icon">${this.collapsedSections.has(`router-${i}-data`) ? '▶' : '▼'}</span>
+                                Request/Response
+                              </div>
+                              ${!this.collapsedSections.has(`router-${i}-data`) ? html`
+                                <div class="stage-requests">
+                                  ${routerData.request ? html`
+                                    <div class="request-section">
+                                      <strong>Request:</strong>
+                                      <pre class="request-json">${JSON.stringify(routerData.request, null, 2)}</pre>
+                                    </div>
+                                  ` : ''}
+                                  ${routerData.response ? html`
+                                    <div class="response-section">
+                                      <strong>Response:</strong>
+                                      <pre class="request-json">${JSON.stringify(routerData.response, null, 2)}</pre>
+                                    </div>
+                                  ` : ''}
                                 </div>
                               ` : ''}
                             </div>
-                          ` : ''}
+                          ` : ''}}}
                         </div>
                       `})}
                     </div>

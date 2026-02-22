@@ -260,7 +260,7 @@ class TestLLMMatcherEdgeCases(unittest.TestCase):
             'route_name': 'greeting'
         }
         
-        is_match, confidence = router._match_with_llm("hello", llm_config)
+        is_match, confidence, stage_data = router._match_with_llm("hello", llm_config)
         
         self.assertFalse(is_match)
         self.assertEqual(confidence, 0.0)
@@ -290,7 +290,7 @@ class TestLLMMatcherEdgeCases(unittest.TestCase):
             'route_name': 'greeting'
         }
         
-        is_match, confidence = router._match_with_llm("hello", llm_config)
+        is_match, confidence, stage_data = router._match_with_llm("hello", llm_config)
         
         # Should fallback to keyword matching
         self.assertFalse(is_match)  # No "is_match" keyword
@@ -321,7 +321,7 @@ class TestLLMMatcherEdgeCases(unittest.TestCase):
             'route_name': 'greeting'
         }
         
-        is_match, confidence = router._match_with_llm("hello", llm_config)
+        is_match, confidence, stage_data = router._match_with_llm("hello", llm_config)
         
         # Should still parse the match
         self.assertTrue(is_match)

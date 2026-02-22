@@ -4,3 +4,5 @@ python-dotenv
 pyyaml
 flask-cors
 semantic-router
+gunicorn
+gevent

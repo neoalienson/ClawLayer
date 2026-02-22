@@ -129,10 +129,11 @@ class TestSemanticBaseRouter(unittest.TestCase):
             'route_name': 'greeting'
         }
         
-        is_match, confidence = router._match_with_llm("hello", llm_config)
+        is_match, confidence, stage_data = router._match_with_llm("hello", llm_config)
         
         self.assertTrue(is_match)
         self.assertEqual(confidence, 0.85)
+        self.assertIsNotNone(stage_data)
     
     @patch('clawlayer.routers.semantic_base_router.requests.post')
     def test_match_with_llm_json_parse_error(self, mock_post):
@@ -159,11 +160,12 @@ class TestSemanticBaseRouter(unittest.TestCase):
             'route_name': 'greeting'
         }
         
-        is_match, confidence = router._match_with_llm("hello", llm_config)
+        is_match, confidence, stage_data = router._match_with_llm("hello", llm_config)
         
-        # Should fallback to keyword matching
-        self.assertTrue(is_match)
-        self.assertEqual(confidence, 0.5)
+        # Should report error in stage_data
+        self.assertFalse(is_match)
+        self.assertEqual(confidence, 0.0)
+        self.assertIsNotNone(stage_data.get('error'))
     
     @patch('clawlayer.routers.semantic_base_router.requests.post')
     def test_match_with_llm_network_error(self, mock_post):
@@ -181,10 +183,11 @@ class TestSemanticBaseRouter(unittest.TestCase):
             'route_name': 'greeting'
         }
         
-        is_match, confidence = router._match_with_llm("hello", llm_config)
+        is_match, confidence, stage_data = router._match_with_llm("hello", llm_config)
         
         self.assertFalse(is_match)
         self.assertEqual(confidence, 0.0)
+        self.assertIsNotNone(stage_data.get('error'))
     
     def test_match_cascade_returns_correct_stage_index(self):
         """Test that cascade returns correct stage index."""
@@ -205,7 +208,7 @@ class TestSemanticBaseRouter(unittest.TestCase):
             (mock_stage2, 0.6, 'embedding')
         ])
         
-        is_match, confidence, stage_idx = router._match_cascade("hello", "greeting")
+        is_match, confidence, stage_idx, stage_details = router._match_cascade("hello", "greeting")
         
         self.assertTrue(is_match)
         self.assertEqual(confidence, 0.75)

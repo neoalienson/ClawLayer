@@ -191,9 +191,11 @@ class TestRouterChain(unittest.TestCase):
     def test_returns_first_match(self):
         router1 = Mock()
         router1.route.return_value = None
+        router1._last_stage_details = []
         
         router2 = Mock()
         router2.route.return_value = RouteResult(name="test")
+        router2._last_stage_details = []
         
         router3 = Mock()
         
@@ -208,6 +210,7 @@ class TestRouterChain(unittest.TestCase):
     def test_fallback_when_no_match(self):
         router = Mock()
         router.route.return_value = None
+        router._last_stage_details = []
         
         chain = RouterChain([router])
         result = chain.route("message", {})

@@ -101,9 +101,7 @@ class ClawLayerApp:
             else:
                 response, response_data = self._handle_static(route_result, context["stream"])
             
-            return response
-        finally:
-            # Always record stats, even on errors
+            # Record stats before returning
             latency_ms = (time.time() - start_time) * 1000
             content = route_result.content if hasattr(route_result, 'content') else None
             if error_info:
@@ -112,13 +110,22 @@ class ClawLayerApp:
             
             # Add fallback info to tried_routers if this was a proxy call
             if route_result.should_proxy and fallback_request:
-                tried_routers.append({
+                fallback_entry = {
                     'name': 'llm_fallback',
                     'request': fallback_request,
                     'response': response_data
-                })
+                }
+                if self.verbose:
+                    self._log(f"Adding fallback to tried_routers: request={bool(fallback_request)}, response={bool(response_data)}")
+                tried_routers.append(fallback_entry)
             
             self.stats.record(message, route_result.name, latency_ms, content, request_data=data, response_data=response_data, tried_routers=tried_routers, route_result=route_result)
+            
+            return response
+        except Exception as e:
+            if self.verbose:
+                self._log(f"ERROR: {str(e)}")
+            raise
     
     def _handle_static(self, route_result, stream: bool):
         """Handle static route response."""
@@ -130,8 +137,10 @@ class ClawLayerApp:
         else:
             response = ResponseGenerator.generate_response(route_result, stream)
             if self.verbose:
-                self._log(f"💬 RESPONSE: {json.dumps(response, indent=2)}")
-            return jsonify(response), response
+                self._log(f"RESPONSE: {json.dumps(response, indent=2)}")
+            resp = jsonify(response)
+            resp.headers['Content-Type'] = 'application/json; charset=utf-8'
+            return resp, response
     
     def _handle_proxy(self, data: dict, stream: bool, route_name: str):
         """Handle proxy to LLM."""
@@ -158,8 +167,10 @@ class ClawLayerApp:
             return Response(proxy_stream(), mimetype="text/event-stream"), None, request_data
         else:
             if self.verbose >= 2:
-                self._log(f"🔍 LLM RESPONSE: {json.dumps(result, indent=2)[:500]}")
-            return jsonify(result), result, request_data
+                self._log(f"LLM RESPONSE: {json.dumps(result, indent=2)[:500]}")
+            resp = jsonify(result)
+            resp.headers['Content-Type'] = 'application/json; charset=utf-8'
+            return resp, result, request_data
     
     def _log(self, message: str):
         """Log message to stderr."""
@@ -169,7 +180,8 @@ class ClawLayerApp:
     
     def run(self):
         """Run the Flask application."""
-        self.app.run(port=self.config.port)
+        # Use threaded mode and explicitly set charset
+        self.app.run(port=self.config.port, threaded=True)
 
 
 def create_app(verbose: int = 0) -> ClawLayerApp:

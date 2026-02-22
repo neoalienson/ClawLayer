@@ -294,8 +294,11 @@ export CLAWLAYER_CONFIG=/path/to/config.yml
 ## Usage
 
 ```bash
-# Run ClawLayer
+# Development mode (Flask dev server)
 python run.py -v
+
+# Production mode (Gunicorn WSGI server - recommended)
+./start-prod.sh
 
 # Run with full request logging
 python run.py -vv
@@ -306,6 +309,20 @@ python run.py -vvvv
 # Run tests
 python -m unittest tests.test_clawlayer -v
 ```
+
+### Production vs Development
+
+**Development mode** (`python run.py`):
+- Uses Flask's built-in development server (werkzeug)
+- Good for testing and debugging
+- ⚠️ Has unicode encoding limitations with emojis in responses
+- Not suitable for production
+
+**Production mode** (`./start-prod.sh`):
+- Uses Gunicorn WSGI server
+- Handles unicode/emoji characters properly
+- Better performance and stability
+- Recommended for production use
 
 ## API
 
