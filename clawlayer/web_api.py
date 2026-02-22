@@ -6,6 +6,23 @@ import yaml
 import os
 import json
 import time
+import shutil
+
+
+def rotate_backups(config_path):
+    """Rotate backup files from .9.bak down to .0.bak"""
+    # Move .8.bak -> .9.bak, .7.bak -> .8.bak, etc.
+    for i in range(8, -1, -1):
+        old_backup = f"{config_path}.{i}.bak"
+        new_backup = f"{config_path}.{i+1}.bak"
+        if os.path.exists(old_backup):
+            if os.path.exists(new_backup):
+                os.remove(new_backup)
+            os.rename(old_backup, new_backup)
+    
+    # Copy current config to .0.bak
+    if os.path.exists(config_path):
+        shutil.copy2(config_path, f"{config_path}.0.bak")
 
 
 def register_web_api(app, stats, config, router_chain):
@@ -41,9 +58,13 @@ def register_web_api(app, stats, config, router_chain):
     
     @app.route('/api/config', methods=['POST'])
     def save_config():
-        """Save configuration."""
+        """Save configuration with backup rotation."""
         config_path = os.getenv('CLAWLAYER_CONFIG', 'config.yml')
         try:
+            # Rotate backups if config exists
+            if os.path.exists(config_path):
+                rotate_backups(config_path)
+            
             config_data = request.json
             with open(config_path, 'w') as f:
                 yaml.safe_dump(config_data, f, default_flow_style=False)
@@ -104,14 +125,23 @@ def register_web_api(app, stats, config, router_chain):
         """SSE endpoint for real-time updates."""
         def generate():
             while True:
+                routers = []
+                for router in router_chain.routers:
+                    routers.append({
+                        'name': router.__class__.__name__,
+                        'type': 'fast' if router.__class__.__name__ in ['EchoRouter', 'CommandRouter'] else 'semantic',
+                        'enabled': True
+                    })
+                
                 data = {
                     'stats': stats.to_dict(),
-                    'logs': stats.get_recent_logs(10)
+                    'logs': stats.get_recent_logs(10),
+                    'routers': routers
                 }
                 yield f"data: {json.dumps(data)}\n\n"
                 time.sleep(3)
         
-        return Response(generate(), mimetype='text/plain', headers={
+        return Response(generate(), mimetype='text/event-stream', headers={
             'Cache-Control': 'no-cache',
             'Connection': 'keep-alive'
         })

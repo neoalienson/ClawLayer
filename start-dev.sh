@@ -23,8 +23,17 @@ cd webui
 npm run dev &
 WEBUI_PID=$!
 
-# Cleanup on exit
-trap "kill $BACKEND_PID $WEBUI_PID 2>/dev/null" EXIT
+# Cleanup function
+cleanup() {
+    echo "\nStopping services..."
+    kill $BACKEND_PID $WEBUI_PID 2>/dev/null
+    exit 0
+}
 
-# Wait for both processes
-wait
+# Trap signals
+trap cleanup INT TERM
+
+# Wait for user interrupt
+while true; do
+    sleep 1
+done

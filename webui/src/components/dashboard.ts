@@ -27,7 +27,6 @@ export class Dashboard extends LitElement {
   
   connectedCallback() {
     super.connectedCallback();
-    this.loadData();
     this.startEventStream();
   }
   
