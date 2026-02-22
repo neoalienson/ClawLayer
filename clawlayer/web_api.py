@@ -138,7 +138,7 @@ def register_web_api(app, stats, config, router_chain):
                     'logs': stats.get_recent_logs(10),
                     'routers': routers
                 }
-                yield f"data: {json.dumps(data)}\n\n"
+                yield f"data: {json.dumps(data, ensure_ascii=False)}\n\n".encode('utf-8')
                 time.sleep(3)
         
         return Response(generate(), mimetype='text/event-stream', headers={
