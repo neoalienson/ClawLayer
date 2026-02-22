@@ -348,6 +348,10 @@ export class ConfigEditor extends LitElement {
   }
   
   render() {
+    if (!this.config) {
+      return html`<div>Loading configuration...</div>`;
+    }
+    
     const providers = this.config.providers || {};
     const defaults = this.config.defaults || {};
     const server = this.config.server || {};
