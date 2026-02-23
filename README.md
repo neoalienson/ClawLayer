@@ -1,23 +1,25 @@
 # ClawLayer
 
-A **lightweight, highly customizable semantic routing layer** for **OpenClaw** AI agents - optimizing performance through intelligent request classification before expensive LLM inference.
+A **lightweight, intelligent proxy and routing layer** for **OpenClaw** AI agents - delivering instant responses, cost savings, and deep observability into agent-LLM communication for security, development, and troubleshooting.
 
 ## Purpose
 
 ClawLayer provides a **simple YAML-driven configuration** to route OpenClaw agent requests intelligently:
 
 - **Instant responses** for greetings and routine queries via semantic matching
-- **Zero-latency tool calls** for command execution patterns via regex
+- **Zero-latency tool calls** for command execution patterns via quick router (regex)
 - **Multi-stage cascade** from fast/cheap to accurate/expensive models
 - **Transparent fallback** to full LLM inference when needed
-- **Real-time monitoring** with web UI to understand how OpenClaw processes requests
+- **Real-time monitoring** with web UI to inspect prompts, context, and responses
 
 **Key Benefits:**
-- ⚡ **Lightweight**: Minimal dependencies, simple architecture
-- 🎯 **Easy Configuration**: Everything in YAML - no code changes needed
+- ⚡ **Quick Response**: Zero-latency routing for commands, ~100ms for semantic matching vs 2-5s LLM inference
+- 💰 **Cost Savings**: Route 80% of requests through cheap models, 15% through mid-tier, 5% to expensive LLM
+- 🔍 **Deep Observability**: Inspect full agent-LLM communication (prompts, context, responses) via web UI
+- 🛡️ **Security Guardrails**: Monitor and analyze all requests/responses for security compliance
+- 🐛 **Development & Troubleshooting**: Understand OpenClaw's behavior, debug issues, optimize workflows
+- 🎯 **Easy Configuration**: Everything in YAML with web-based config editor - no code changes needed
 - 🔧 **Highly Customizable**: Mix embedding and LLM stages, adjust thresholds, add custom routers
-- 💰 **Cost Optimized**: Route 80% of requests through cheap models, 15% through mid-tier, 5% to expensive LLM
-- 🔍 **Observability**: Web UI with real-time stats and detailed request logs - perfect for understanding OpenClaw's behavior
 
 ### System Architecture
 
@@ -110,9 +112,11 @@ flowchart TB
 
 Routers are organized into two categories, each with its own priority:
 
-### Fast Routers (checked first)
+### Fast Routers (checked first) - Quick Router
 1. **EchoRouter** - Detects tool execution results (role=tool, function=exec) - 🟢 Instant
 2. **CommandRouter** - Detects "run:" prefix for command execution - 🟢 Instant (regex)
+
+These routers use pattern matching and logic checks for **zero-latency routing** - no embedding or LLM inference required.
 
 ### Semantic Routers (checked after fast routers)
 3. **GreetingRouter** - Semantic similarity matching for greetings - 🟡 ~100ms (embedding)
@@ -220,7 +224,7 @@ That's it! ClawLayer is now routing requests intelligently.
 
 ### Web UI Features
 
-The web UI helps you **understand how OpenClaw works** by providing:
+The web UI provides **complete visibility into OpenClaw-LLM communication**:
 
 ![ClawLayer Web UI](docs/assets/webui.png)
 
@@ -229,11 +233,15 @@ The web UI helps you **understand how OpenClaw works** by providing:
 - **Log Viewer**: 
   - See all requests in real-time
   - Click any log entry to view full details
-  - Inspect complete request/response data (untruncated)
+  - **Inspect complete prompts, context, and responses** (untruncated)
   - Understand which router handled each request and why
   - Monitor latency per request
 
-Perfect for learning OpenClaw's request flow and optimizing your routing configuration!
+**Use cases:**
+- 🛡️ **Security**: Monitor for prompt injection, data leakage, or policy violations
+- 🐛 **Development**: Debug agent behavior, understand decision-making process
+- 🔧 **Troubleshooting**: Identify bottlenecks, analyze failures, optimize performance
+- 📚 **Learning**: Understand how OpenClaw agents communicate with LLMs
 
 ## Configuration
 
@@ -542,6 +550,7 @@ Register in `router_factory.py` or configure via YAML (see Example 4 above).
 
 ## Documentation
 
+- **[Quick Router](docs/QUICK_ROUTER.md)** - Zero-latency pattern-based routing for instant responses
 - **[Testing Guide](docs/TESTING.md)** - Python and Node.js test coverage, running tests
 - **[File Structure](docs/FILE_STRUCTURE.md)** - Project layout and component organization
 - **[Cascade Patterns](docs/CASCADE.md)** - Advanced multi-stage routing configurations
