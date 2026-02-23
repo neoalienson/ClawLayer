@@ -1,5 +1,5 @@
 # ClawLayer Quick Router Only Configuration
-# This config uses ONLY quick routers (zero-latency pattern matching)
+# This config uses ONLY quick router (zero-latency pattern matching)
 # No embedding or LLM providers needed - instant responses!
 
 # LLM Provider for fallback (when no quick router matches)
@@ -19,27 +19,63 @@ defaults:
 server:
   port: 11435
 
-# Router Configuration - Quick Routers Only
+# Router Configuration - Quick Router Only
 routers:
   # Fast routers (regex/logic-based) - zero-latency, no API calls
   fast:
     priority:
-      - echo      # Echo tool execution results
-      - command   # Detect "run:" command prefix
+      - quick
     
-    # Echo router - instantly return tool execution results
-    echo:
+    # Quick router - pattern-based instant responses
+    quick:
       enabled: true
-    
-    # Command router - instantly convert "run: <cmd>" to tool call
-    command:
-      enabled: true
-      prefix: "run:"  # Detect commands starting with "run:"
+      patterns:
+        - pattern: Greet the user
+          response: Hi
+        - pattern: <conversation>.*</conversation>.*summarize
+          response: '## Goal
+
+            No user goal provided in the conversation.
+
+
+            ## Constraints & Preferences
+
+            - (none)
+
+
+            ## Progress
+
+            ### Done
+
+            - [x] None
+
+
+            ### In Progress
+
+            - [ ] None
+
+
+            ### Blocked
+
+            - [ ] None
+
+
+            ## Key Decisions
+
+            - **None**
+
+
+            ## Next Steps
+
+            1. None
+
+
+            ## Critical Context
+
+            - (none)
+
+            '
   
-  # Semantic routers disabled - all disabled for quick router only mode
+  # Semantic routers disabled - quick router only mode
   semantic:
-    greeting:
-      enabled: false
-    
-    summarize:
-      enabled: false
+    priority: []
