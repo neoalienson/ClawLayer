@@ -4,6 +4,7 @@ from flask import Flask, request, jsonify, Response
 import argparse
 import sys
 import json
+import os
 
 from clawlayer.config import Config, RouterConfig, ProviderConfig
 from clawlayer.routers import RouterChain
@@ -12,6 +13,7 @@ from clawlayer.handler import MessageHandler, ResponseGenerator
 from clawlayer.proxy import LLMProxy
 from clawlayer.stats import StatsCollector
 from clawlayer.web_api import register_web_api
+from clawlayer.openclaw_inject import inject_openclaw_config
 
 
 class ClawLayerApp:
@@ -238,7 +240,25 @@ def main():
     parser = argparse.ArgumentParser(description="ClawLayer - Intelligent routing for OpenClaw agents")
     parser.add_argument("-v", "--verbose", action="count", default=0, 
                        help="Increase verbosity (-v, -vv, -vvvv)")
+    parser.add_argument("--inject-openclaw", metavar="PATH",
+                       help="Inject ClawLayer provider config into OpenClaw config file")
+    parser.add_argument("--dry-run", action="store_true",
+                       help="Show what would be injected without modifying files")
     args = parser.parse_args()
+    
+    # Handle OpenClaw config injection
+    if args.inject_openclaw:
+        try:
+            result = inject_openclaw_config(args.inject_openclaw, args.dry_run, args.verbose)
+            if not args.dry_run:
+                print(f"✅ Successfully injected ClawLayer config into {args.inject_openclaw}")
+        except FileNotFoundError as e:
+            print(f"❌ Error: {e}", file=sys.stderr)
+            sys.exit(1)
+        except json.JSONDecodeError as e:
+            print(f"❌ Error: Invalid JSON in OpenClaw config: {e}", file=sys.stderr)
+            sys.exit(1)
+        return
     
     app = create_app(verbose=args.verbose)
     app.run()

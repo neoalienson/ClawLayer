@@ -111,6 +111,45 @@ cd webui && npm install && cd ..
 
 That's it! ClawLayer is now routing requests intelligently. See [Configuration Guide](docs/CONFIGURATION.md) for detailed setup and [Web UI Guide](docs/WEBUI.md) for monitoring features.
 
+### 4. Configure OpenClaw (Optional)
+
+To use ClawLayer with OpenClaw agents:
+
+**Automatic setup:**
+```bash
+# Preview what will be added
+python run.py --inject-openclaw ~/.openclaw/openclaw.json --dry-run
+
+# Inject ClawLayer provider into OpenClaw config
+python run.py --inject-openclaw ~/.openclaw/openclaw.json
+```
+
+**Manual setup:**
+Add to your `~/.openclaw/openclaw.json`:
+```json
+{
+  "models": {
+    "providers": {
+      "clawlayer": {
+        "baseUrl": "http://localhost:11435/v1",
+        "apiKey": "clawlayer-local",
+        "api": "openai-completions",
+        "models": [{"id": "any", "name": "ClawLayer"}]
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "models": {
+        "clawlayer/any": {"alias": "clawlayer"}
+      }
+    }
+  }
+}
+```
+
+Then use `clawlayer/any` as the model in your OpenClaw agents.
+
 ## Usage
 
 ```bash
