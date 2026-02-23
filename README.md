@@ -21,68 +21,7 @@ ClawLayer provides a **simple YAML-driven configuration** to route OpenClaw agen
 - 🎯 **Easy Configuration**: Everything in YAML with web-based config editor - no code changes needed
 - 🔧 **Highly Customizable**: Mix embedding and LLM stages, adjust thresholds, add custom routers
 
-### System Architecture
-
-```mermaid
-flowchart TB
-    Agent[OpenClaw Agent]
-    CL[ClawLayer]
-    
-    subgraph Fast["⚡ Fast Routers (regex/logic)"]
-        Echo[EchoRouter<br/>role=tool check]
-        Cmd[CommandRouter<br/>run: prefix]
-    end
-    
-    subgraph Semantic["🧠 Semantic Routers (embedding)"]
-        Greet[GreetingRouter]
-        Sum[SummarizeRouter]
-    end
-    
-    subgraph Cascade["Multi-Stage Cascade"]
-        Stage1[Stage 1: Fast/Cheap<br/>Local Embedding]
-        Stage2[Stage 2: Accurate/Expensive<br/>Remote Embedding or LLM]
-    end
-    
-    LLM[🔴 LLM Fallback]
-    
-    Agent -->|Request| CL
-    CL --> Fast
-    Echo -->|Match| CL
-    Echo -->|No Match| Cmd
-    Cmd -->|Match| CL
-    Cmd -->|No Match| Semantic
-    
-    Greet -->|Query| Stage1
-    Stage1 -->|confidence ≥ threshold| Greet
-    Stage1 -->|confidence < threshold| Stage2
-    Stage2 -->|confidence ≥ threshold| Greet
-    Stage2 -->|confidence < threshold| Greet
-    Greet -->|Match| CL
-    Greet -->|No Match| Sum
-    
-    Sum -->|Query| Stage1
-    Stage1 -->|Match result| Sum
-    Sum -->|Match| CL
-    Sum -->|No Match| LLM
-    
-    LLM -->|Response| CL
-    CL -->|Response| Agent
-    
-    style Fast fill:#E8F5E9
-    style Semantic fill:#FFF9C4
-    style Cascade fill:#E3F2FD
-    style Echo fill:#90EE90
-    style Cmd fill:#90EE90
-    style Greet fill:#FFD700
-    style Sum fill:#FFD700
-    style Stage1 fill:#90EE90
-    style Stage2 fill:#FFA500
-    style LLM fill:#FFB6C1
-```
-
-**Legend**: 🟢 Fast/Cheap | 🟠 Accurate/Expensive | 🔴 Full LLM Inference
-
-**Flow**: Fast Routers → Semantic Routers (with cascade) → LLM Fallback. Cascade tries cheap models first, escalates to expensive models only when needed.
+See [Architecture](docs/ARCHITECTURE.md) for detailed system design and performance analysis.
 
 ## Features
 
@@ -108,76 +47,6 @@ flowchart TB
   - Monitor routing performance and latency
   - Perfect for learning, debugging, and optimizing OpenClaw workflows
 
-## Router Priority
-
-Routers are organized into two categories, each with its own priority:
-
-### Fast Routers (checked first) - Quick Router
-1. **EchoRouter** - Detects tool execution results (role=tool, function=exec) - 🟢 Instant
-2. **CommandRouter** - Detects "run:" prefix for command execution - 🟢 Instant (regex)
-
-These routers use pattern matching and logic checks for **zero-latency routing** - no embedding or LLM inference required.
-
-### Semantic Routers (checked after fast routers)
-3. **GreetingRouter** - Semantic similarity matching for greetings - 🟡 ~100ms (embedding)
-4. **SummarizeRouter** - Semantic similarity for summary requests - 🟡 ~100ms (embedding)
-
-### Fallback
-5. **LLM Proxy** - Forwards to LLM for everything else - 🔴 2-5s (full inference)
-
-## Speed Optimization
-
-### Greeting Route (Semantic Matching)
-
-```mermaid
-sequenceDiagram
-    participant Client
-    participant Router
-    participant Embedding
-    participant LLM
-    
-    Note over Client,LLM: With ClawLayer (Fast)
-    Client->>Router: "hi"
-    Router->>Embedding: Encode query
-    Embedding-->>Router: Vector similarity
-    Router-->>Client: "Hi" (~100ms)
-    
-    Note over Client,LLM: Without Router (Slow)
-    Client->>LLM: "hi"
-    Note over LLM: Full inference
-    LLM-->>Client: "Hi" (2-5s)
-```
-
-### Command Execution (Regex Matching)
-
-```mermaid
-sequenceDiagram
-    participant Client
-    participant Router
-    participant LLM
-    participant System
-    
-    Note over Client,System: With ClawLayer (Fast)
-    Client->>Router: "run: ls"
-    Router->>Router: Detect "run:" prefix
-    Router-->>Client: tool_call(exec, "ls")
-    Client->>System: Execute ls
-    System-->>Client: Output
-    Client->>Router: tool result
-    Router->>Router: Detect role=tool, function=exec
-    Router-->>Client: Echo output (instant)
-    
-    Note over Client,System: Without Router (Slow)
-    Client->>LLM: "run: ls"
-    Note over LLM: Full inference
-    LLM-->>Client: tool_call(exec, "ls")
-    Client->>System: Execute ls
-    System-->>Client: Output
-    Client->>LLM: tool result
-    Note over LLM: Full inference
-    LLM-->>Client: Processed output (4-10s total)
-```
-
 ## Quick Start
 
 ### 1. Install
@@ -186,6 +55,25 @@ pip install -r requirements.txt
 ```
 
 ### 2. Configure
+
+**Quick Router Only (Fastest - Zero API Costs)**
+```bash
+cp config.quickrouter.yml config.yml
+```
+
+Minimal config for instant responses:
+```yaml
+# Quick routers only - zero-latency pattern matching
+routers:
+  fast:
+    echo:
+      enabled: true  # Echo tool results instantly
+    command:
+      enabled: true  # Detect "run:" commands
+      prefix: "run:"
+```
+
+**Or Full Configuration (Semantic + Quick Routing)**
 ```bash
 cp config.example.yml config.yml
 # Edit config.yml - add your providers and routes
@@ -550,10 +438,11 @@ Register in `router_factory.py` or configure via YAML (see Example 4 above).
 
 ## Documentation
 
+- **[Architecture](docs/ARCHITECTURE.md)** - System design, router priority, and performance analysis
 - **[Quick Router](docs/QUICK_ROUTER.md)** - Zero-latency pattern-based routing for instant responses
+- **[Cascade Patterns](docs/CASCADE.md)** - Advanced multi-stage routing configurations
 - **[Testing Guide](docs/TESTING.md)** - Python and Node.js test coverage, running tests
 - **[File Structure](docs/FILE_STRUCTURE.md)** - Project layout and component organization
-- **[Cascade Patterns](docs/CASCADE.md)** - Advanced multi-stage routing configurations
 
 ## Related Projects
 

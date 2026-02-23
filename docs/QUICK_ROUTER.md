@@ -172,6 +172,48 @@ routers:
 
 ## Configuration Examples
 
+### Quick Router Only Mode
+
+For maximum speed with zero API costs, use only quick routers:
+
+```yaml
+# config.quickrouter.yml - Quick Router Only Configuration
+providers:
+  remote:
+    url: http://localhost:11434/v1/chat/completions
+    type: openai
+    provider_type: llm
+    models:
+      text: llama3.2
+
+defaults:
+  text_provider: remote
+
+server:
+  port: 11435
+
+routers:
+  fast:
+    priority:
+      - echo      # Echo tool results
+      - command   # Detect "run:" commands
+    
+    echo:
+      enabled: true
+    
+    command:
+      enabled: true
+      prefix: "run:"
+  
+  semantic:
+    greeting:
+      enabled: false  # Disable semantic routing
+    summarize:
+      enabled: false
+```
+
+See [config.quickrouter.yml](../config.quickrouter.yml) for the complete example.
+
 ### Example 1: Disable Quick Routers
 
 ```yaml

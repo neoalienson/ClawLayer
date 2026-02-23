@@ -4,3 +4,5 @@ __pycache__/
 *.log
 config.yml
 config.yml.*.bak
+.backend.pid
+.webui.pid
