@@ -133,7 +133,7 @@ class CustomRouter(Router):
 Then register in config:
 ```yaml
 routers:
-  fast:
+  handlers:
     priority:
       - custom  # Add your router
       - echo
@@ -146,7 +146,7 @@ routers:
 
 ```yaml
 routers:
-  fast:
+  handlers:
     priority:
       - command  # Check commands first
       - echo
@@ -170,7 +170,7 @@ routers:
 
 ```yaml
 routers:
-  fast:
+  handlers:
     command:
       prefix: "exec:"  # Use 'exec:' instead of 'run:'
 ```
@@ -298,13 +298,13 @@ providers:
 
 ## Router Configuration
 
-### Fast Routers
+### Handlers
 
-Fast routers use pattern matching (regex/logic) for instant responses:
+Handlers use pattern matching (regex/logic) for instant responses:
 
 ```yaml
 routers:
-  fast:
+  handlers:
     priority:
       - echo      # Check echo first
       - command   # Then commands
@@ -312,17 +312,26 @@ routers:
     
     echo:
       enabled: true
+      terminal: true  # Stop processing if matched (default)
     
     command:
       enabled: true
       prefix: "run:"
+      terminal: true  # Stop processing if matched (default)
     
     quick:
       enabled: true
+      terminal: false  # Continue to next handler if matched
       patterns:
         - pattern: "^(hi|hello)$"
           response: "Hi"
 ```
+
+**Terminal Flag**: Controls whether the handler stops processing or continues to the next handler:
+- `terminal: true` (default) - Stop processing and return response immediately
+- `terminal: false` - Continue to next handler in priority chain even if matched
+
+Use `terminal: false` when you want a handler to modify the request but allow subsequent handlers to process it.
 
 ### Semantic Routers
 
@@ -362,4 +371,4 @@ routers:
 - [README.md](../README.md) - Main documentation
 - [ARCHITECTURE.md](ARCHITECTURE.md) - System design
 - [CASCADE.md](CASCADE.md) - Advanced cascade patterns
-- [QUICK_ROUTER.md](QUICK_ROUTER.md) - Quick router guide
+- [HANDLERS.md](HANDLERS.md) - Quick router guide

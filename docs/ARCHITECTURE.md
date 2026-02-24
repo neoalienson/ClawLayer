@@ -7,9 +7,9 @@ flowchart TB
     Agent[OpenClaw Agent]
     CL[ClawLayer]
     
-    subgraph Fast["⚡ Fast Routers (regex/logic)"]
-        Echo[EchoRouter<br/>role=tool check]
-        Cmd[CommandRouter<br/>run: prefix]
+    subgraph Handlers["⚡ Handlers (regex/logic)"]
+        Echo[EchoHandler<br/>role=tool check]
+        Cmd[CommandHandler<br/>run: prefix]
     end
     
     subgraph Semantic["🧠 Semantic Routers (embedding)"]
@@ -25,7 +25,7 @@ flowchart TB
     LLM[🔴 LLM Fallback]
     
     Agent -->|Request| CL
-    CL --> Fast
+    CL --> Handlers
     Echo -->|Match| CL
     Echo -->|No Match| Cmd
     Cmd -->|Match| CL
@@ -47,7 +47,7 @@ flowchart TB
     LLM -->|Response| CL
     CL -->|Response| Agent
     
-    style Fast fill:#E8F5E9
+    style Handlers fill:#E8F5E9
     style Semantic fill:#FFF9C4
     style Cascade fill:#E3F2FD
     style Echo fill:#90EE90
@@ -61,19 +61,19 @@ flowchart TB
 
 **Legend**: 🟢 Fast/Cheap | 🟠 Accurate/Expensive | 🔴 Full LLM Inference
 
-**Flow**: Fast Routers → Semantic Routers (with cascade) → LLM Fallback. Cascade tries cheap models first, escalates to expensive models only when needed.
+**Flow**: Handlers → Semantic Routers (with cascade) → LLM Fallback. Cascade tries cheap models first, escalates to expensive models only when needed.
 
 ## Router Priority
 
 Routers are organized into two categories, each with its own priority:
 
-### Fast Routers (checked first) - Quick Router
-1. **EchoRouter** - Detects tool execution results (role=tool, function=exec) - 🟢 Instant
-2. **CommandRouter** - Detects "run:" prefix for command execution - 🟢 Instant (regex)
+### Handlers (checked first)
+1. **EchoHandler** - Detects tool execution results (role=tool, function=exec) - 🟢 Instant
+2. **CommandHandler** - Detects "run:" prefix for command execution - 🟢 Instant (regex)
 
-These routers use pattern matching and logic checks for **zero-latency routing** - no embedding or LLM inference required.
+These handlers use pattern matching and logic checks for **zero-latency routing** - no embedding or LLM inference required.
 
-### Semantic Routers (checked after fast routers)
+### Semantic Routers (checked after handlers)
 3. **GreetingRouter** - Semantic similarity matching for greetings - 🟡 ~100ms (embedding)
 4. **SummarizeRouter** - Semantic similarity for summary requests - 🟡 ~100ms (embedding)
 
@@ -146,7 +146,7 @@ sequenceDiagram
 ### Request Distribution
 
 With proper configuration, ClawLayer routes:
-- **75%** through Quick Router (zero cost)
+- **75%** through Handlers (zero cost)
 - **20%** through Semantic Router (~$0.0001/request)
 - **5%** through LLM Fallback (~$0.001/request)
 
@@ -159,7 +159,7 @@ With proper configuration, ClawLayer routes:
 
 **With ClawLayer** (1000 requests/day):
 ```
-750 quick router × $0 = $0
+750 handlers × $0 = $0
 200 semantic × $0.0001 = $0.02
 50 LLM × $0.001 = $0.05
 Total = $0.07/day = $25.55/year
@@ -199,7 +199,7 @@ See [CASCADE.md](CASCADE.md) for advanced patterns.
 
 - **ClawLayer Proxy**: OpenAI-compatible API server
 - **Router Factory**: Creates and manages router instances
-- **Quick Routers**: Pattern-based instant routing
+- **Handlers**: Pattern-based instant routing
 - **Semantic Routers**: Embedding-based similarity matching
 - **Provider System**: Manages LLM/embedding providers
 - **Web UI**: Real-time monitoring and configuration
@@ -207,10 +207,10 @@ See [CASCADE.md](CASCADE.md) for advanced patterns.
 ### Data Flow
 
 ```
-Request → ClawLayer → Quick Router → Semantic Router → LLM Fallback → Response
-                           ↓              ↓                ↓
-                        Instant        ~100ms           2-5s
-                         $0          ~$0.0001         ~$0.001
+Request → ClawLayer → Handler → Semantic Router → LLM Fallback → Response
+                        ↓              ↓                ↓
+                     Instant        ~100ms           2-5s
+                      $0          ~$0.0001         ~$0.001
 ```
 
 ## Observability
@@ -232,6 +232,6 @@ Use cases:
 ## Related Documentation
 
 - [README.md](../README.md) - Main documentation
-- [QUICK_ROUTER.md](QUICK_ROUTER.md) - Zero-latency routing
+- [HANDLERS.md](HANDLERS.md) - Zero-latency routing
 - [CASCADE.md](CASCADE.md) - Multi-stage routing patterns
 - [TESTING.md](TESTING.md) - Testing guide

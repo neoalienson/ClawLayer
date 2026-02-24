@@ -65,7 +65,7 @@ Minimal config for instant responses:
 ```yaml
 # Quick router only - zero-latency pattern matching
 routers:
-  fast:
+  handlers:
     priority:
       - quick
     quick:
@@ -173,7 +173,7 @@ python -m unittest tests.test_clawlayer -v
 
 ClawLayer automatically tracks cost savings in real-time:
 
-- **Fast routers** (quick/echo/command): $0.00 - zero cost, instant responses
+- **Handlers** (quick/echo/command): $0.00 - zero cost, instant responses
 - **Semantic routers** (embedding-based): ~$0.02/1M tokens - cheap similarity matching
 - **LLM fallback**: ~$0.50/1M tokens - full inference when needed
 
@@ -187,7 +187,7 @@ Example stats response:
   "requests": 1000,
   "cost_saved": 0.0234,
   "distribution": {
-    "fast_pct": 75.0,
+    "handlers_pct": 75.0,
     "semantic_pct": 20.0,
     "llm_pct": 5.0
   }
@@ -221,7 +221,7 @@ Supports both streaming and non-streaming modes.
 - **[Architecture](docs/ARCHITECTURE.md)** - System design, router priority, and performance analysis
 - **[Configuration Guide](docs/CONFIGURATION.md)** - Detailed configuration and customization examples
 - **[Web UI Guide](docs/WEBUI.md)** - Web interface for monitoring and observability
-- **[Quick Router](docs/QUICK_ROUTER.md)** - Zero-latency pattern-based routing for instant responses
+- **[Handlers](docs/HANDLERS.md)** - Zero-latency pattern-based routing for instant responses
 - **[Cascade Patterns](docs/CASCADE.md)** - Advanced multi-stage routing configurations
 - **[Testing Guide](docs/TESTING.md)** - Python and Node.js test coverage, running tests
 - **[File Structure](docs/FILE_STRUCTURE.md)** - Project layout and component organization

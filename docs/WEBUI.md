@@ -175,4 +175,4 @@ curl -X POST http://localhost:11435/api/reload
 
 - [README.md](../README.md) - Main documentation
 - [ARCHITECTURE.md](ARCHITECTURE.md) - System design
-- [QUICK_ROUTER.md](QUICK_ROUTER.md) - Quick router documentation
+- [HANDLERS.md](HANDLERS.md) - Quick router documentation
