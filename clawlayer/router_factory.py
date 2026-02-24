@@ -2,9 +2,9 @@
 
 from typing import List, Optional, Tuple, Any, Dict
 from clawlayer.routers import Router
-from clawlayer.routers.quick_router import QuickRouter
-from clawlayer.routers.echo_router import EchoRouter
-from clawlayer.routers.command_router import CommandRouter
+from clawlayer.routers.quick_handler import QuickHandler
+from clawlayer.routers.echo_handler import EchoHandler
+from clawlayer.routers.command_handler import CommandHandler
 from clawlayer.routers.greeting_router import GreetingRouter
 from clawlayer.routers.summarize_router import SummarizeRouter
 from clawlayer.config import Config

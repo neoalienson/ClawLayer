@@ -53,8 +53,8 @@ class Router(ABC):
 
 
 # Import all routers for convenience
-from clawlayer.routers.echo_router import EchoRouter
-from clawlayer.routers.command_router import CommandRouter
+from clawlayer.routers.echo_handler import EchoHandler
+from clawlayer.routers.command_handler import CommandHandler
 from clawlayer.routers.greeting_router import GreetingRouter
 from clawlayer.routers.summarize_router import SummarizeRouter
 from clawlayer.routers.router_chain import RouterChain
@@ -62,8 +62,8 @@ from clawlayer.routers.router_chain import RouterChain
 __all__ = [
     'Router',
     'RouteResult',
-    'EchoRouter',
-    'CommandRouter',
+    'EchoHandler',
+    'CommandHandler',
     'GreetingRouter',
     'SummarizeRouter',
     'RouterChain'

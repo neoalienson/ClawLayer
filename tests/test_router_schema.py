@@ -35,13 +35,13 @@ class TestRouterSchemaEnforcement(unittest.TestCase):
         self.assertIn('good_router', Router._registry)
         self.assertEqual(Router._registry['good_router'], GoodRouter)
     
-    def test_quick_router_has_schema(self):
-        """Test that QuickRouter has SCHEMA defined."""
-        from clawlayer.routers.quick_router import QuickRouter
+    def test_quick_handler_has_schema(self):
+        """Test that QuickHandler has SCHEMA defined."""
+        from clawlayer.routers.quick_handler import QuickHandler
         
-        self.assertTrue(hasattr(QuickRouter, 'SCHEMA'))
-        self.assertIsInstance(QuickRouter.SCHEMA, dict)
-        self.assertIn('patterns', QuickRouter.SCHEMA)
+        self.assertTrue(hasattr(QuickHandler, 'SCHEMA'))
+        self.assertIsInstance(QuickHandler.SCHEMA, dict)
+        self.assertIn('patterns', QuickHandler.SCHEMA)
 
 
 if __name__ == "__main__":

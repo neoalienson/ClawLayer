@@ -5,7 +5,7 @@ from clawlayer.routers import Router, RouteResult
 
 
 @Router.register('echo')
-class EchoRouter(Router):
+class EchoHandler(Router):
     """Echoes tool execution results without LLM processing."""
     
     SCHEMA = {}

@@ -6,8 +6,8 @@ from clawlayer.routers import Router, RouteResult
 
 
 @Router.register('quick')
-class QuickRouter(Router):
-    """Quick router using regex patterns."""
+class QuickHandler(Router):
+    """Quick handler using regex patterns."""
     
     SCHEMA = {
         'patterns': {

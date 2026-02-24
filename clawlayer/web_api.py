@@ -87,7 +87,7 @@ def register_web_api(app, stats, config, router_chain):
         for router in router_chain.routers:
             routers.append({
                 'name': router.__class__.__name__,
-                'type': 'handler' if router.__class__.__name__ in ['EchoRouter', 'CommandRouter', 'QuickRouter'] else 'semantic',
+                'type': 'handler' if router.__class__.__name__ in ['EchoHandler', 'CommandHandler', 'QuickHandler'] else 'semantic',
                 'enabled': True
             })
         return jsonify(routers)
@@ -139,7 +139,7 @@ def register_web_api(app, stats, config, router_chain):
                 for router in router_chain.routers:
                     routers.append({
                         'name': router.__class__.__name__,
-                        'type': 'handler' if router.__class__.__name__ in ['EchoRouter', 'CommandRouter', 'QuickRouter'] else 'semantic',
+                        'type': 'handler' if router.__class__.__name__ in ['EchoHandler', 'CommandHandler', 'QuickHandler'] else 'semantic',
                         'enabled': True
                     })
                 

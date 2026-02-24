@@ -10,7 +10,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from clawlayer.routers import (
-    GreetingRouter, EchoRouter, CommandRouter, 
+    GreetingRouter, EchoHandler, CommandHandler, 
     SummarizeRouter, RouterChain, RouteResult
 )
 
@@ -59,11 +59,11 @@ class TestGreetingRouter(unittest.TestCase):
         self.assertIsNone(result)
 
 
-class TestEchoRouter(unittest.TestCase):
+class TestEchoHandler(unittest.TestCase):
     """Test echo router."""
     
     def setUp(self):
-        self.router = EchoRouter()
+        self.router = EchoHandler()
     
     def test_echoes_exec_tool_result(self):
         messages = [
@@ -111,11 +111,11 @@ class TestEchoRouter(unittest.TestCase):
         self.assertIsNone(result)
 
 
-class TestCommandRouter(unittest.TestCase):
+class TestCommandHandler(unittest.TestCase):
     """Test command router."""
     
     def setUp(self):
-        self.router = CommandRouter()
+        self.router = CommandHandler()
     
     def test_detects_run_prefix(self):
         result = self.router.route("run: ls -la", {})
@@ -226,9 +226,9 @@ class TestRouterChain(unittest.TestCase):
         mock_semantic.return_value = mock_result
         
         greeting_router = GreetingRouter(mock_semantic)
-        command_router = CommandRouter()
+        command_handler = CommandHandler()
         
-        chain = RouterChain([command_router, greeting_router])
+        chain = RouterChain([command_handler, greeting_router])
         
         # Should match command first
         result = chain.route("run: echo hi", {})

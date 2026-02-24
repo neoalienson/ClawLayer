@@ -1,11 +1,11 @@
-"""Tests for QuickRouter."""
+"""Tests for QuickHandler."""
 
 import unittest
-from clawlayer.routers.quick_router import QuickRouter
+from clawlayer.routers.quick_handler import QuickHandler
 
 
-class TestQuickRouter(unittest.TestCase):
-    """Test QuickRouter functionality."""
+class TestQuickHandler(unittest.TestCase):
+    """Test QuickHandler functionality."""
     
     def setUp(self):
         from clawlayer.config import RouterConfig
@@ -14,7 +14,7 @@ class TestQuickRouter(unittest.TestCase):
                 {'pattern': r"^(hi|hello|hey)$", 'response': 'Hi'}
             ]
         })
-        self.router = QuickRouter(config)
+        self.router = QuickHandler(config)
     
     def test_matches_hi(self):
         """Test that 'hi' matches."""
@@ -51,7 +51,7 @@ class TestQuickRouter(unittest.TestCase):
         config = RouterConfig(enabled=True, options={
             'patterns': [{'pattern': "greet", 'response': 'Hello!'}]
         })
-        router = QuickRouter(config)
+        router = QuickHandler(config)
         result = router.route("Please greet the user", {})
         self.assertIsNotNone(result)
         self.assertEqual(result.content, 'Hello!')
@@ -69,7 +69,7 @@ class TestQuickRouter(unittest.TestCase):
                 {'pattern': r"^(hola|bonjour)$", 'response': 'Hola!'}
             ]
         })
-        router = QuickRouter(config)
+        router = QuickHandler(config)
         
         result = router.route("hola", {})
         self.assertIsNotNone(result)

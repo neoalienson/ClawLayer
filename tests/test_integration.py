@@ -9,7 +9,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from clawlayer.routers import (
-    GreetingRouter, EchoRouter, CommandRouter, 
+    GreetingRouter, EchoHandler, CommandHandler, 
     SummarizeRouter, RouterChain, RouteResult
 )
 
@@ -26,8 +26,8 @@ class TestIntegration(unittest.TestCase):
         mock_semantic.return_value = mock_result
         
         routers = [
-            EchoRouter(),
-            CommandRouter(),
+            EchoHandler(),
+            CommandHandler(),
             GreetingRouter([(mock_semantic, 0.5, 'embedding')]),
             SummarizeRouter([(mock_semantic, 0.5, 'embedding')])
         ]
@@ -51,7 +51,7 @@ class TestIntegration(unittest.TestCase):
 class TestRouterFactory(unittest.TestCase):
     """Test router factory."""
     
-    def test_create_echo_router(self):
+    def test_create_echo_handler(self):
         """Test creating echo router from config."""
         from clawlayer.config import Config
         from clawlayer.router_factory import RouterFactory
@@ -62,9 +62,9 @@ class TestRouterFactory(unittest.TestCase):
         router = factory.create_router('echo')
         if router is None:
             self.skipTest("Echo router not enabled in config")
-        self.assertIsInstance(router, EchoRouter)
+        self.assertIsInstance(router, EchoHandler)
     
-    def test_create_command_router(self):
+    def test_create_command_handler(self):
         """Test creating command router with prefix from config."""
         from clawlayer.config import Config
         from clawlayer.router_factory import RouterFactory
@@ -75,7 +75,7 @@ class TestRouterFactory(unittest.TestCase):
         router = factory.create_router('command')
         if router is None:
             self.skipTest("Command router not enabled in config")
-        self.assertIsInstance(router, CommandRouter)
+        self.assertIsInstance(router, CommandHandler)
         self.assertEqual(router.prefix, 'run:')
     
     def test_build_router_chain(self):

@@ -7,7 +7,7 @@ from clawlayer.routers import Router, RouteResult
 
 
 @Router.register('command')
-class CommandRouter(Router):
+class CommandHandler(Router):
     """Detects command execution patterns and generates tool calls."""
     
     SCHEMA = {

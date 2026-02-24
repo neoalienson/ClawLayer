@@ -65,7 +65,7 @@ class StatsCollector:
     
     def _calculate_cost(self, router_name, tokens):
         """Calculate cost for a router."""
-        if router_name in ['quick', 'echo', 'command', 'EchoRouter', 'CommandRouter', 'QuickRouter']:
+        if router_name in ['quick', 'echo', 'command', 'EchoHandler', 'CommandHandler', 'QuickHandler']:
             return 0.0
         elif router_name in ['greeting', 'summarize', 'GreetingRouter', 'SummarizeRouter']:
             return (tokens / 1_000_000) * COST_SEMANTIC
@@ -76,7 +76,7 @@ class StatsCollector:
         """Convert stats to dictionary."""
         # Calculate distribution
         total = self.requests or 1
-        handlers_hits = sum(self.router_hits.get(r, 0) for r in ['quick', 'echo', 'command', 'EchoRouter', 'CommandRouter', 'QuickRouter'])
+        handlers_hits = sum(self.router_hits.get(r, 0) for r in ['quick', 'echo', 'command', 'EchoHandler', 'CommandHandler', 'QuickHandler'])
         semantic_hits = sum(self.router_hits.get(r, 0) for r in ['greeting', 'summarize', 'GreetingRouter', 'SummarizeRouter'])
         llm_hits = total - handlers_hits - semantic_hits
         
