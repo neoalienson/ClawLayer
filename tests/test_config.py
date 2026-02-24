@@ -84,8 +84,8 @@ class TestConfig(unittest.TestCase):
         config = Config.from_yaml(config_path)
         
         # Test fast router priority (may include fast_greet)
-        self.assertIn('echo', config.fast_router_priority)
-        self.assertIn('command', config.fast_router_priority)
+        self.assertIn('echo', config.handlers_router_priority)
+        self.assertIn('command', config.handlers_router_priority)
         
         # Test semantic router priority
         self.assertEqual(config.semantic_router_priority, ['greeting', 'summarize'])
@@ -206,7 +206,7 @@ routers:
             self.assertIn('fast_greet', config.routers)
             self.assertTrue(config.routers['fast_greet'].enabled)
             self.assertEqual(config.routers['fast_greet'].options['pattern'], '^(hi|hello)$')
-            self.assertIn('fast_greet', config.fast_router_priority)
+            self.assertIn('fast_greet', config.handlers_router_priority)
         finally:
             os.unlink(temp_path)
     
