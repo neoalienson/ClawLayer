@@ -18,7 +18,7 @@ class EchoHandler(Router):
             )
             
             if tool_function == "exec":
-                return RouteResult(name="echo", content=message)
+                return RouteResult(name="echo", content=message, terminal=True)
         return None
     
     def _find_tool_function(self, messages: List[Dict], tool_call_id: str) -> Optional[str]:

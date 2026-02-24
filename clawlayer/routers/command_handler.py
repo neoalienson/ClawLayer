@@ -36,7 +36,7 @@ class CommandHandler(Router):
                     })
                 }
             }]
-            return RouteResult(name="linux_command", tool_calls=tool_calls)
+            return RouteResult(name="linux_command", tool_calls=tool_calls, terminal=True)
         return None
     
     def _extract_command(self, text: str) -> str:

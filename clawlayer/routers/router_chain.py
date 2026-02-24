@@ -72,7 +72,10 @@ class RouterChain:
             if result:
                 result.tried_routers = tried_routers
                 result.all_stage_data = all_stage_data
-                return result
+                # Check if handler is terminal (default: True)
+                if getattr(result, 'terminal', True):
+                    return result
+                # If not terminal, continue to next handler
         
         # Default: proxy to LLM
         fallback = RouteResult(name="fallback", should_proxy=True)

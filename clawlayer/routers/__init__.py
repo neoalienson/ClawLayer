@@ -12,6 +12,7 @@ class RouteResult:
     content: Optional[str] = None
     tool_calls: Optional[List[Dict[str, Any]]] = None
     should_proxy: bool = False
+    terminal: bool = True  # If True, stop processing; if False, continue to next handler
 
 
 class Router(ABC):

@@ -48,5 +48,5 @@ class QuickHandler(Router):
         msg = message.strip()
         for p in self.patterns:
             if p['regex'].search(msg):
-                return RouteResult(name="quick", content=p['response'])
+                return RouteResult(name="quick", content=p['response'], terminal=True)
         return None

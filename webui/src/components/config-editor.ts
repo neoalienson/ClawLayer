@@ -641,13 +641,13 @@ export class ConfigEditor extends LitElement {
               <div class="router-header">
                 <span>📋 ${name}</span>
                 <div class="router-controls">
-                  <button class="remove-btn" @click=${() => this.removeRouter('fast', name)}>Delete</button>
-                  <button class="move-btn" ?disabled=${index === 0} @click=${() => this.moveRouter('fast', index, -1)}>↑</button>
-                  <button class="move-btn" ?disabled=${index === (Array.isArray(routers.handlers?.priority) ? routers.handlers.priority : ['echo', 'command']).length - 1} @click=${() => this.moveRouter('fast', index, 1)}>↓</button>
+                  <button class="remove-btn" @click=${() => this.removeRouter('handlers', name)}>Delete</button>
+                  <button class="move-btn" ?disabled=${index === 0} @click=${() => this.moveRouter('handlers', index, -1)}>↑</button>
+                  <button class="move-btn" ?disabled=${index === (Array.isArray(routers.handlers?.priority) ? routers.handlers.priority : ['echo', 'command']).length - 1} @click=${() => this.moveRouter('handlers', index, 1)}>↓</button>
                   <label>
                     <input type="checkbox" class="checkbox" 
                            .checked=${routers.handlers?.[name]?.enabled !== false}
-                           @change=${(e: any) => this.updateRouter('fast', name, 'enabled', e.target.checked)}>
+                           @change=${(e: any) => this.updateRouter('handlers', name, 'enabled', e.target.checked)}>
                     Enabled
                   </label>
                 </div>
@@ -661,7 +661,7 @@ export class ConfigEditor extends LitElement {
                   <div class="form-group">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                       <label>${key}</label>
-                      <button class="remove-btn" @click=${() => this.removeRouterProperty('fast', name, key)}>Remove</button>
+                      <button class="remove-btn" @click=${() => this.removeRouterProperty('handlers', name, key)}>Remove</button>
                     </div>
                     ${propType === 'structured-array' ? html`
                       ${(value || []).map((item: any, i: number) => html`
@@ -693,21 +693,21 @@ export class ConfigEditor extends LitElement {
                           `)}
                         </div>
                       `)}
-                      <button class="add-btn" @click=${() => this.addArrayItem('fast', name, key, {})}>Add Item</button>
+                      <button class="add-btn" @click=${() => this.addArrayItem('handlers', name, key, {})}>Add Item</button>
                     ` : propType === 'array' ? html`
                       <textarea .value=${JSON.stringify(value, null, 2)} 
                                 @input=${(e: any) => {
                                   try {
-                                    this.updateRouter('fast', name, key, JSON.parse(e.target.value));
+                                    this.updateRouter('handlers', name, key, JSON.parse(e.target.value));
                                   } catch {}
                                 }}></textarea>
                     ` : html`
                       <input .value=${typeof value === 'object' ? JSON.stringify(value) : value || ''} 
-                             @input=${(e: any) => this.updateRouter('fast', name, key, e.target.value)}>
+                             @input=${(e: any) => this.updateRouter('handlers', name, key, e.target.value)}>
                     `}
                   </div>
                 `})}}
-                <button class="add-btn" @click=${() => this.addRouterProperty('fast', name)}>Add Property</button>
+                <button class="add-btn" @click=${() => this.addRouterProperty('handlers', name)}>Add Property</button>
               </div>
             </div>
           `)}}
