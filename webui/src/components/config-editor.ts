@@ -636,14 +636,14 @@ export class ConfigEditor extends LitElement {
           <button class="add-btn" style="margin: 0;" @click=${this.addHandler}>Add Handler</button>
         </div>
         <div class="router-priority">
-          ${(Array.isArray(routers.handlers?.priority) ? routers.handlers.priority : ['echo', 'command']).map((name: string, index: number) => html`
+          ${(routers.handlers?.priority || []).map((name: string, index: number) => html`
             <div class="draggable">
               <div class="router-header">
                 <span>📋 ${name}</span>
                 <div class="router-controls">
                   <button class="remove-btn" @click=${() => this.removeRouter('handlers', name)}>Delete</button>
                   <button class="move-btn" ?disabled=${index === 0} @click=${() => this.moveRouter('handlers', index, -1)}>↑</button>
-                  <button class="move-btn" ?disabled=${index === (Array.isArray(routers.handlers?.priority) ? routers.handlers.priority : ['echo', 'command']).length - 1} @click=${() => this.moveRouter('handlers', index, 1)}>↓</button>
+                  <button class="move-btn" ?disabled=${index === (routers.handlers?.priority || []).length - 1} @click=${() => this.moveRouter('handlers', index, 1)}>↓</button>
                   <label>
                     <input type="checkbox" class="checkbox" 
                            .checked=${routers.handlers?.[name]?.enabled !== false}
