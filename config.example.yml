@@ -42,7 +42,7 @@ server:
 # Router Configuration
 routers:
   # Fast routers (regex/logic-based) - checked first, no LLM/embedding needed
-  fast:
+  handlers:
     priority:
       - echo      # Tool result detection
       - fast_greet  # Fast greeting pattern matching

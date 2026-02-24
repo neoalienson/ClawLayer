@@ -22,7 +22,7 @@ server:
 # Router Configuration - Quick Router Only
 routers:
   # Fast routers (regex/logic-based) - zero-latency, no API calls
-  fast:
+  handlers:
     priority:
       - quick
     
