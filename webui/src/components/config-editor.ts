@@ -650,6 +650,12 @@ export class ConfigEditor extends LitElement {
                            @change=${(e: any) => this.updateRouter('handlers', name, 'enabled', e.target.checked)}>
                     Enabled
                   </label>
+                  <label>
+                    <input type="checkbox" class="checkbox" 
+                           .checked=${routers.handlers?.[name]?.terminal !== false}
+                           @change=${(e: any) => this.updateRouter('handlers', name, 'terminal', e.target.checked)}>
+                    Terminal
+                  </label>
                 </div>
               </div>
               <div>
