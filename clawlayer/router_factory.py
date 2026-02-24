@@ -174,8 +174,8 @@ class RouterFactory:
         """Build router chain from configuration."""
         routers = []
         
-        # Add fast routers
-        for router_name in self.config.fast_router_priority:
+        # Add handlers
+        for router_name in self.config.handlers_router_priority:
             router = self.create_router(router_name)
             if router:
                 routers.append(router)

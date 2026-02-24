@@ -82,7 +82,7 @@ class TestStatsCollector(unittest.TestCase):
         stats_dict = self.stats.to_dict()
         dist = stats_dict['distribution']
         
-        self.assertEqual(dist['fast_pct'], 50.0)
+        self.assertEqual(dist['handlers_pct'], 50.0)
         self.assertEqual(dist['semantic_pct'], 25.0)
         self.assertEqual(dist['llm_pct'], 25.0)
 

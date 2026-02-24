@@ -166,9 +166,9 @@ describe('ConfigEditor', () => {
       };
       const requestUpdateSpy = vi.spyOn(editor, 'requestUpdate');
 
-      editor.moveRouter('fast', 1, -1);
+      editor.moveRouter('handlers', 1, -1);
 
-      expect(editor.config.routers.fast.priority).toEqual(['command', 'echo']);
+      expect(editor.config.routers.handlers.priority).toEqual(['command', 'echo']);
       expect(requestUpdateSpy).toHaveBeenCalled();
     });
 
@@ -181,9 +181,9 @@ describe('ConfigEditor', () => {
         },
       };
 
-      editor.moveRouter('fast', 0, -1);
+      editor.moveRouter('handlers', 0, -1);
 
-      expect(editor.config.routers.fast.priority).toEqual(['echo', 'command']);
+      expect(editor.config.routers.handlers.priority).toEqual(['echo', 'command']);
     });
   });
 
@@ -248,9 +248,9 @@ describe('ConfigEditor', () => {
         .mockReturnValueOnce('run:');
       const updateRouterSpy = vi.spyOn(editor, 'updateRouter');
 
-      editor.addRouterProperty('fast', 'command');
+      editor.addRouterProperty('handlers', 'command');
 
-      expect(updateRouterSpy).toHaveBeenCalledWith('fast', 'command', 'prefix', 'run:');
+      expect(updateRouterSpy).toHaveBeenCalledWith('handlers', 'command', 'prefix', 'run:');
     });
   });
 
@@ -265,9 +265,9 @@ describe('ConfigEditor', () => {
       };
       const requestUpdateSpy = vi.spyOn(editor, 'requestUpdate');
 
-      editor.removeRouterProperty('fast', 'command', 'prefix');
+      editor.removeRouterProperty('handlers', 'command', 'prefix');
 
-      expect(editor.config.routers.fast.command.prefix).toBeUndefined();
+      expect(editor.config.routers.handlers.command.prefix).toBeUndefined();
       expect(requestUpdateSpy).toHaveBeenCalled();
     });
   });
@@ -307,8 +307,8 @@ describe('ConfigEditor', () => {
   });
 
   describe('tab navigation', () => {
-    it('should default to fast-routers tab', () => {
-      expect(editor.activeTab).toBe('fast-routers');
+    it('should default to handlers tab', () => {
+      expect(editor.activeTab).toBe('handlers');
     });
 
     it('should switch to semantic-routers tab', () => {

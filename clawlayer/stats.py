@@ -76,9 +76,9 @@ class StatsCollector:
         """Convert stats to dictionary."""
         # Calculate distribution
         total = self.requests or 1
-        fast_hits = sum(self.router_hits.get(r, 0) for r in ['quick', 'echo', 'command', 'EchoRouter', 'CommandRouter', 'QuickRouter'])
+        handlers_hits = sum(self.router_hits.get(r, 0) for r in ['quick', 'echo', 'command', 'EchoRouter', 'CommandRouter', 'QuickRouter'])
         semantic_hits = sum(self.router_hits.get(r, 0) for r in ['greeting', 'summarize', 'GreetingRouter', 'SummarizeRouter'])
-        llm_hits = total - fast_hits - semantic_hits
+        llm_hits = total - handlers_hits - semantic_hits
         
         return {
             'requests': self.requests,
@@ -87,7 +87,7 @@ class StatsCollector:
             'uptime': round(time.time() - self.start_time, 0),
             'cost_saved': round(self.cost_saved, 4),
             'distribution': {
-                'fast_pct': round(100 * fast_hits / total, 1),
+                'handlers_pct': round(100 * handlers_hits / total, 1),
                 'semantic_pct': round(100 * semantic_hits / total, 1),
                 'llm_pct': round(100 * llm_hits / total, 1)
             }

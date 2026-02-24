@@ -66,7 +66,7 @@ export class ConfigEditor extends LitElement {
   @state() viewMode: 'ui' | 'yaml' = 'ui';
   @state() yamlContent = '';
   @state() collapsedProviders: Set<string> = new Set();
-  @state() activeTab: 'fast-routers' | 'semantic-routers' | 'providers' | 'system' = 'fast-routers';
+  @state() activeTab: 'handlers' | 'semantic-routers' | 'providers' | 'system' = 'handlers';
   @state() routerSchemas: Record<string, any> = {};
   
   private client = new ClawLayerClient();
@@ -218,12 +218,12 @@ export class ConfigEditor extends LitElement {
     }
   }
   
-  addFastRouter() {
+  addHandler() {
     const name = prompt('Router name:');
     if (name) {
-      if (!this.config.routers.fast) this.config.routers.fast = { priority: [] };
-      this.config.routers.fast.priority.push(name);
-      this.config.routers.fast[name] = { enabled: true };
+      if (!this.config.routers.handlers) this.config.routers.handlers = { priority: [] };
+      this.config.routers.handlers.priority.push(name);
+      this.config.routers.handlers[name] = { enabled: true };
       this.requestUpdate();
     }
   }
@@ -430,8 +430,8 @@ export class ConfigEditor extends LitElement {
       
       ${this.viewMode === 'ui' ? html`
         <div class="tabs">
-          <button class="tab ${this.activeTab === 'fast-routers' ? 'active' : ''}" 
-                  @click=${() => this.activeTab = 'fast-routers'}>Fast Routers</button>
+          <button class="tab ${this.activeTab === 'handlers' ? 'active' : ''}" 
+                  @click=${() => this.activeTab = 'handlers'}>Handlers</button>
           <button class="tab ${this.activeTab === 'semantic-routers' ? 'active' : ''}" 
                   @click=${() => this.activeTab = 'semantic-routers'}>Semantic Routers</button>
           <button class="tab ${this.activeTab === 'providers' ? 'active' : ''}" 
@@ -464,8 +464,8 @@ export class ConfigEditor extends LitElement {
   }
   
   renderUIEditor() {
-    if (this.activeTab === 'fast-routers') {
-      return this.renderFastRoutersTab();
+    if (this.activeTab === 'handlers') {
+      return this.renderHandlersTab();
     } else if (this.activeTab === 'semantic-routers') {
       return this.renderSemanticRoutersTab();
     } else if (this.activeTab === 'providers') {
@@ -627,26 +627,26 @@ export class ConfigEditor extends LitElement {
     `;
   }
   
-  renderFastRoutersTab() {
+  renderHandlersTab() {
     const routers = this.config.routers || {};
     return html`
       <div class="section">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-          <h2 style="margin: 0;">Fast Routers</h2>
-          <button class="add-btn" style="margin: 0;" @click=${this.addFastRouter}>Add Fast Router</button>
+          <h2 style="margin: 0;">Handlers</h2>
+          <button class="add-btn" style="margin: 0;" @click=${this.addHandler}>Add Handler</button>
         </div>
         <div class="router-priority">
-          ${(Array.isArray(routers.fast?.priority) ? routers.fast.priority : ['echo', 'command']).map((name: string, index: number) => html`
+          ${(Array.isArray(routers.handlers?.priority) ? routers.handlers.priority : ['echo', 'command']).map((name: string, index: number) => html`
             <div class="draggable">
               <div class="router-header">
                 <span>📋 ${name} Router</span>
                 <div class="router-controls">
                   <button class="remove-btn" @click=${() => this.removeRouter('fast', name)}>Delete</button>
                   <button class="move-btn" ?disabled=${index === 0} @click=${() => this.moveRouter('fast', index, -1)}>↑</button>
-                  <button class="move-btn" ?disabled=${index === (Array.isArray(routers.fast?.priority) ? routers.fast.priority : ['echo', 'command']).length - 1} @click=${() => this.moveRouter('fast', index, 1)}>↓</button>
+                  <button class="move-btn" ?disabled=${index === (Array.isArray(routers.handlers?.priority) ? routers.handlers.priority : ['echo', 'command']).length - 1} @click=${() => this.moveRouter('fast', index, 1)}>↓</button>
                   <label>
                     <input type="checkbox" class="checkbox" 
-                           .checked=${routers.fast?.[name]?.enabled !== false}
+                           .checked=${routers.handlers?.[name]?.enabled !== false}
                            @change=${(e: any) => this.updateRouter('fast', name, 'enabled', e.target.checked)}>
                     Enabled
                   </label>
@@ -654,7 +654,7 @@ export class ConfigEditor extends LitElement {
               </div>
               <div>
                 <h4>Properties</h4>
-                ${Object.entries(routers.fast?.[name] || {}).filter(([key]) => key !== 'enabled').map(([key, value]) => {
+                ${Object.entries(routers.handlers?.[name] || {}).filter(([key]) => key !== 'enabled').map(([key, value]) => {
                   const propType = this.inferPropertyType(name, key, value);
                   const schema = this.routerSchemas[name]?.[key];
                   return html`
@@ -669,7 +669,7 @@ export class ConfigEditor extends LitElement {
                           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                             <span>Item ${i + 1}</span>
                             <button class="remove-btn" @click=${() => {
-                              this.config.routers.fast[name][key].splice(i, 1);
+                              this.config.routers.handlers[name][key].splice(i, 1);
                               this.requestUpdate();
                             }}>Remove</button>
                           </div>
@@ -679,13 +679,13 @@ export class ConfigEditor extends LitElement {
                               ${field === 'response' ? html`
                                 <textarea .value=${item[field] || ''} 
                                           @input=${(e: any) => {
-                                            this.config.routers.fast[name][key][i][field] = e.target.value;
+                                            this.config.routers.handlers[name][key][i][field] = e.target.value;
                                             this.requestUpdate();
                                           }}></textarea>
                               ` : html`
                                 <input .value=${item[field] || ''} 
                                        @input=${(e: any) => {
-                                         this.config.routers.fast[name][key][i][field] = e.target.value;
+                                         this.config.routers.handlers[name][key][i][field] = e.target.value;
                                          this.requestUpdate();
                                        }}>
                               `}

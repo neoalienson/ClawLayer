@@ -38,7 +38,7 @@ class Config:
     text_provider: str
     vision_provider: str
     port: int
-    fast_router_priority: List[str]
+    handlers_router_priority: List[str]
     semantic_router_priority: List[str]
     routers: Dict[str, RouterConfig]
     
@@ -122,18 +122,18 @@ class Config:
         # Parse router configs
         routers_config = data.get('routers', {})
         
-        # Get fast and semantic router priorities
-        fast_config = routers_config.get('fast', {})
+        # Get handlers and semantic router priorities
+        handlers_config = routers_config.get('handlers', routers_config.get('fast', {}))
         semantic_config = routers_config.get('semantic', {})
         
-        fast_priority = fast_config.get('priority', ['echo', 'command'])
+        handlers_priority = handlers_config.get('priority', ['echo', 'command'])
         semantic_priority = semantic_config.get('priority', ['greeting', 'summarize'])
         
         # Build router configs from both categories
         routers = {}
-        # Collect all router names from both fast and semantic configs
+        # Collect all router names from both handlers and semantic configs
         all_router_names = set()
-        for name in fast_config.keys():
+        for name in handlers_config.keys():
             if name != 'priority':
                 all_router_names.add(name)
         for name in semantic_config.keys():
@@ -141,9 +141,9 @@ class Config:
                 all_router_names.add(name)
         
         for name in all_router_names:
-            # Check in fast category first
-            if name in fast_config:
-                router_data = fast_config[name]
+            # Check in handlers category first
+            if name in handlers_config:
+                router_data = handlers_config[name]
             # Then check in semantic category
             elif name in semantic_config:
                 router_data = semantic_config[name]
@@ -164,7 +164,7 @@ class Config:
             text_provider=os.getenv("TEXT_PROVIDER", defaults.get('text_provider', 'remote')),
             vision_provider=os.getenv("VISION_PROVIDER", defaults.get('vision_provider', 'remote')),
             port=int(os.getenv("PORT", server.get('port', 11435))),
-            fast_router_priority=fast_priority,
+            handlers_router_priority=handlers_priority,
             semantic_router_priority=semantic_priority,
             routers=routers
         )

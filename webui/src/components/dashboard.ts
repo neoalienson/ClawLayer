@@ -25,7 +25,7 @@ export class Dashboard extends LitElement {
     avg_latency: 0, 
     uptime: 0,
     cost_saved: 0,
-    distribution: { fast_pct: 0, semantic_pct: 0, llm_pct: 0 }
+    distribution: { handlers_pct: 0, semantic_pct: 0, llm_pct: 0 }
   };
   @state() routers: Router[] = [];
   
@@ -69,7 +69,7 @@ export class Dashboard extends LitElement {
     const totalHits = Object.values(this.stats.router_hits).reduce((a, b) => a + b, 0);
     const hitRate = this.stats.requests > 0 ? (totalHits / this.stats.requests * 100).toFixed(1) : '0';
     const costSaved = this.stats.cost_saved || 0;
-    const dist = this.stats.distribution || { fast_pct: 0, semantic_pct: 0, llm_pct: 0 };
+    const dist = this.stats.distribution || { handlers_pct: 0, semantic_pct: 0, llm_pct: 0 };
     
     return html`
       <h1>ClawLayer Dashboard</h1>
@@ -101,7 +101,7 @@ export class Dashboard extends LitElement {
         <div class="router-list">
           <div class="router-item">
             <span class="router-name">Fast Routers (zero cost)</span>
-            <span class="router-hits">${dist.fast_pct}%</span>
+            <span class="router-hits">${dist.handlers_pct}%</span>
           </div>
           <div class="router-item">
             <span class="router-name">Semantic Routers (cheap)</span>

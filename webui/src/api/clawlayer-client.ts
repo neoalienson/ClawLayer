@@ -11,7 +11,7 @@ export interface Stats {
   uptime: number;
   cost_saved?: number;
   distribution?: {
-    fast_pct: number;
+    handlers_pct: number;
     semantic_pct: number;
     llm_pct: number;
   };
