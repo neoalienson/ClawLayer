@@ -22,7 +22,7 @@ describe('ConfigEditor', () => {
       providers: {},
       defaults: {},
       server: { port: 11435 },
-      routers: { fast: {}, semantic: {} }
+      routers: { handlers: {}, semantic: {} }
     };
     document.body.appendChild(editor);
   });
@@ -159,7 +159,7 @@ describe('ConfigEditor', () => {
     it('should move router up in priority', () => {
       editor.config = {
         routers: {
-          fast: {
+          handlers: {
             priority: ['echo', 'command'],
           },
         },
@@ -175,7 +175,7 @@ describe('ConfigEditor', () => {
     it('should not move router beyond bounds', () => {
       editor.config = {
         routers: {
-          fast: {
+          handlers: {
             priority: ['echo', 'command'],
           },
         },
@@ -238,7 +238,7 @@ describe('ConfigEditor', () => {
     it('should add property to router', () => {
       editor.config = {
         routers: {
-          fast: {
+          handlers: {
             command: { enabled: true },
           },
         },
@@ -258,7 +258,7 @@ describe('ConfigEditor', () => {
     it('should remove property from router', () => {
       editor.config = {
         routers: {
-          fast: {
+          handlers: {
             command: { enabled: true, prefix: 'run:' },
           },
         },

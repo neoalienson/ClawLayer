@@ -639,7 +639,7 @@ export class ConfigEditor extends LitElement {
           ${(Array.isArray(routers.handlers?.priority) ? routers.handlers.priority : ['echo', 'command']).map((name: string, index: number) => html`
             <div class="draggable">
               <div class="router-header">
-                <span>📋 ${name} Handler</span>
+                <span>📋 ${name}</span>
                 <div class="router-controls">
                   <button class="remove-btn" @click=${() => this.removeRouter('fast', name)}>Delete</button>
                   <button class="move-btn" ?disabled=${index === 0} @click=${() => this.moveRouter('fast', index, -1)}>↑</button>
