@@ -19,7 +19,14 @@ export class Dashboard extends LitElement {
     .router-hits { color: #7f8c8d; }
   `;
   
-  @state() stats: Stats = { requests: 0, router_hits: {}, avg_latency: 0, uptime: 0 };
+  @state() stats: Stats = { 
+    requests: 0, 
+    router_hits: {}, 
+    avg_latency: 0, 
+    uptime: 0,
+    cost_saved: 0,
+    distribution: { fast_pct: 0, semantic_pct: 0, llm_pct: 0 }
+  };
   @state() routers: Router[] = [];
   
   private client = new ClawLayerClient();
@@ -61,6 +68,8 @@ export class Dashboard extends LitElement {
   render() {
     const totalHits = Object.values(this.stats.router_hits).reduce((a, b) => a + b, 0);
     const hitRate = this.stats.requests > 0 ? (totalHits / this.stats.requests * 100).toFixed(1) : '0';
+    const costSaved = this.stats.cost_saved || 0;
+    const dist = this.stats.distribution || { fast_pct: 0, semantic_pct: 0, llm_pct: 0 };
     
     return html`
       <h1>ClawLayer Dashboard</h1>
@@ -72,8 +81,8 @@ export class Dashboard extends LitElement {
         </div>
         
         <div class="stat-card">
-          <div class="stat-label">Router Hit Rate</div>
-          <div class="stat-value">${hitRate}%</div>
+          <div class="stat-label">Cost Saved</div>
+          <div class="stat-value">$${costSaved.toFixed(4)}</div>
         </div>
         
         <div class="stat-card">
@@ -84,6 +93,24 @@ export class Dashboard extends LitElement {
         <div class="stat-card">
           <div class="stat-label">Uptime</div>
           <div class="stat-value">${Math.floor(this.stats.uptime / 60)}m</div>
+        </div>
+      </div>
+      
+      <div class="router-chain">
+        <h2>Request Distribution</h2>
+        <div class="router-list">
+          <div class="router-item">
+            <span class="router-name">Fast Routers (zero cost)</span>
+            <span class="router-hits">${dist.fast_pct}%</span>
+          </div>
+          <div class="router-item">
+            <span class="router-name">Semantic Routers (cheap)</span>
+            <span class="router-hits">${dist.semantic_pct}%</span>
+          </div>
+          <div class="router-item">
+            <span class="router-name">LLM Fallback (expensive)</span>
+            <span class="router-hits">${dist.llm_pct}%</span>
+          </div>
         </div>
       </div>
       

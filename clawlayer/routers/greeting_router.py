@@ -1,12 +1,28 @@
 """Greeting router using semantic similarity with multi-stage cascading."""
 
 from typing import Optional, Dict, Any
-from clawlayer.routers import RouteResult
+from clawlayer.routers import Router, RouteResult
 from clawlayer.routers.semantic_base_router import SemanticBaseRouter
 
 
+@Router.register('greeting')
 class GreetingRouter(SemanticBaseRouter):
     """Handles greeting messages using semantic similarity with cascade support."""
+    
+    SCHEMA = {
+        'stages': {
+            'type': 'array',
+            'items': {
+                'type': 'object',
+                'properties': {
+                    'provider': {'type': 'string', 'label': 'Provider'},
+                    'model': {'type': 'string', 'label': 'Model'},
+                    'threshold': {'type': 'number', 'label': 'Threshold'}
+                }
+            }
+        },
+        'utterances': {'type': 'array', 'label': 'Example utterances'}
+    }
     
     def _pre_filter(self, message: str, context: Dict[str, Any]) -> Optional[str]:
         """Pre-filter to reject obvious non-greetings."""

@@ -4,8 +4,11 @@ from typing import Optional, Dict, Any, List
 from clawlayer.routers import Router, RouteResult
 
 
+@Router.register('echo')
 class EchoRouter(Router):
     """Echoes tool execution results without LLM processing."""
+    
+    SCHEMA = {}
     
     def route(self, message: str, context: Dict[str, Any]) -> Optional[RouteResult]:
         if context.get("role") == "tool" and context.get("tool_call_id"):

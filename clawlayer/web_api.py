@@ -120,6 +120,16 @@ def register_web_api(app, stats, config, router_chain):
         limit = request.args.get('limit', 50, type=int)
         return jsonify(stats.get_recent_logs(limit))
     
+    @app.route('/api/router-schemas')
+    def get_router_schemas():
+        """Get schema definitions from router classes."""
+        from clawlayer.routers import Router
+        schemas = {}
+        for name, router_class in Router._registry.items():
+            if hasattr(router_class, 'SCHEMA'):
+                schemas[name] = router_class.SCHEMA
+        return jsonify(schemas)
+    
     @app.route('/api/events')
     def events():
         """SSE endpoint for real-time updates."""

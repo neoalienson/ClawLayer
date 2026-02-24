@@ -1,11 +1,12 @@
 """Router factory for building routers from configuration."""
 
 from typing import List, Optional, Tuple, Any, Dict
-from clawlayer.routers import (
-    Router, EchoRouter, CommandRouter,
-    GreetingRouter, SummarizeRouter
-)
-from clawlayer.routers.quick_router import QuickRouter  # Import to trigger registration
+from clawlayer.routers import Router
+from clawlayer.routers.quick_router import QuickRouter
+from clawlayer.routers.echo_router import EchoRouter
+from clawlayer.routers.command_router import CommandRouter
+from clawlayer.routers.greeting_router import GreetingRouter
+from clawlayer.routers.summarize_router import SummarizeRouter
 from clawlayer.config import Config
 
 
@@ -153,30 +154,19 @@ class RouterFactory:
         if not router_config or not router_config.enabled:
             return None
         
-        # Try registry first
+        # Use registry for all routers
         router = Router.create(router_name, router_config)
         if router:
             return router
         
-        # Fallback to hardcoded routers
-        if router_name == 'echo':
-            return EchoRouter()
-        
-        elif router_name == 'command':
-            prefix = router_config.options.get('prefix', 'run:')
-            return CommandRouter(prefix)
-        
-        elif router_name == 'greeting':
+        # Special handling for semantic routers that need cascade stages
+        if router_name in ['greeting', 'summarize']:
             if self.verbose:
                 print(f"Building {router_name} with cascade stages:", file=__import__('sys').stderr)
             cascade_stages = self._build_cascade_stages(router_config)
-            return GreetingRouter(cascade_stages)
-        
-        elif router_name == 'summarize':
-            if self.verbose:
-                print(f"Building {router_name} with cascade stages:", file=__import__('sys').stderr)
-            cascade_stages = self._build_cascade_stages(router_config)
-            return SummarizeRouter(cascade_stages)
+            router_class = Router._registry.get(router_name)
+            if router_class:
+                return router_class(cascade_stages)
         
         return None
     

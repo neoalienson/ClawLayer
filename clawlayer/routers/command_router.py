@@ -6,11 +6,20 @@ import time
 from clawlayer.routers import Router, RouteResult
 
 
+@Router.register('command')
 class CommandRouter(Router):
     """Detects command execution patterns and generates tool calls."""
     
-    def __init__(self, prefix: str = "run:"):
-        self.prefix = prefix.lower()
+    SCHEMA = {
+        'prefix': {'type': 'string', 'label': 'Command prefix'}
+    }
+    
+    def __init__(self, router_config=None):
+        super().__init__(router_config)
+        if router_config:
+            self.prefix = router_config.options.get('prefix', 'run:').lower()
+        else:
+            self.prefix = 'run:'
     
     def route(self, message: str, context: Dict[str, Any]) -> Optional[RouteResult]:
         if self.prefix in message.lower():

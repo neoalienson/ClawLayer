@@ -32,6 +32,8 @@ class Router(ABC):
     def register(cls, name: str):
         """Decorator to register a router class."""
         def wrapper(router_class):
+            if not hasattr(router_class, 'SCHEMA'):
+                raise AttributeError(f"Router '{name}' must define SCHEMA class attribute")
             cls._registry[name] = router_class
             return router_class
         return wrapper

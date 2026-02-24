@@ -1,12 +1,28 @@
 """Summarize router using semantic similarity with multi-stage cascading."""
 
 from typing import Optional, Dict, Any
-from clawlayer.routers import RouteResult
+from clawlayer.routers import Router, RouteResult
 from clawlayer.routers.semantic_base_router import SemanticBaseRouter
 
 
+@Router.register('summarize')
 class SummarizeRouter(SemanticBaseRouter):
     """Provides structured summary template using semantic similarity with cascade support."""
+    
+    SCHEMA = {
+        'stages': {
+            'type': 'array',
+            'items': {
+                'type': 'object',
+                'properties': {
+                    'provider': {'type': 'string', 'label': 'Provider'},
+                    'model': {'type': 'string', 'label': 'Model'},
+                    'threshold': {'type': 'number', 'label': 'Threshold'}
+                }
+            }
+        },
+        'utterances': {'type': 'array', 'label': 'Example utterances'}
+    }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

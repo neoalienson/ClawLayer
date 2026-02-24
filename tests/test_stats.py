@@ -55,6 +55,32 @@ class TestStatsCollector(unittest.TestCase):
         """Test delete_log() on empty logs."""
         result = self.stats.delete_log(1)
         self.assertFalse(result)
+    
+    def test_cost_tracking_fast_router(self):
+        """Test cost tracking for fast routers (zero cost)."""
+        self.stats.record("hello world", "quick", 0.5)
+        stats_dict = self.stats.to_dict()
+        self.assertGreater(stats_dict['cost_saved'], 0)
+    
+    def test_cost_tracking_semantic_router(self):
+        """Test cost tracking for semantic routers."""
+        self.stats.record("hello world", "greeting", 100)
+        stats_dict = self.stats.to_dict()
+        self.assertGreater(stats_dict['cost_saved'], 0)
+    
+    def test_distribution_calculation(self):
+        """Test request distribution calculation."""
+        self.stats.record("msg1", "quick", 1)
+        self.stats.record("msg2", "quick", 1)
+        self.stats.record("msg3", "greeting", 100)
+        self.stats.record("msg4", "llm_fallback", 2000)
+        
+        stats_dict = self.stats.to_dict()
+        dist = stats_dict['distribution']
+        
+        self.assertEqual(dist['fast_pct'], 50.0)
+        self.assertEqual(dist['semantic_pct'], 25.0)
+        self.assertEqual(dist['llm_pct'], 25.0)
 
 
 if __name__ == '__main__':

@@ -45,6 +45,23 @@ describe('ConfigEditor', () => {
       expect(editor.config).toEqual(mockConfig);
     });
 
+    it('should collapse all providers by default', async () => {
+      const mockConfig = {
+        providers: { 
+          local: { url: 'http://localhost:11434' },
+          remote: { url: 'http://remote:11434' }
+        },
+        defaults: { embedding_provider: 'local' },
+      };
+      mockClient.getConfig.mockResolvedValue(mockConfig);
+
+      await editor.loadConfig();
+
+      expect(editor.collapsedProviders.has('local')).toBe(true);
+      expect(editor.collapsedProviders.has('remote')).toBe(true);
+      expect(editor.collapsedProviders.size).toBe(2);
+    });
+
     it('should show error message on load failure', async () => {
       mockClient.getConfig.mockRejectedValue(new Error('Network error'));
       const showMessageSpy = vi.spyOn(editor, 'showMessage');
@@ -252,6 +269,114 @@ describe('ConfigEditor', () => {
 
       expect(editor.config.routers.fast.command.prefix).toBeUndefined();
       expect(requestUpdateSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('toggleProvider', () => {
+    it('should collapse expanded provider', () => {
+      editor.collapsedProviders = new Set();
+      const requestUpdateSpy = vi.spyOn(editor, 'requestUpdate');
+
+      editor.toggleProvider('local');
+
+      expect(editor.collapsedProviders.has('local')).toBe(true);
+      expect(requestUpdateSpy).toHaveBeenCalled();
+    });
+
+    it('should expand collapsed provider', () => {
+      editor.collapsedProviders = new Set(['local']);
+      const requestUpdateSpy = vi.spyOn(editor, 'requestUpdate');
+
+      editor.toggleProvider('local');
+
+      expect(editor.collapsedProviders.has('local')).toBe(false);
+      expect(requestUpdateSpy).toHaveBeenCalled();
+    });
+
+    it('should toggle multiple providers independently', () => {
+      editor.collapsedProviders = new Set(['local']);
+
+      editor.toggleProvider('remote');
+      expect(editor.collapsedProviders.has('local')).toBe(true);
+      expect(editor.collapsedProviders.has('remote')).toBe(true);
+
+      editor.toggleProvider('local');
+      expect(editor.collapsedProviders.has('local')).toBe(false);
+      expect(editor.collapsedProviders.has('remote')).toBe(true);
+    });
+  });
+
+  describe('tab navigation', () => {
+    it('should default to fast-routers tab', () => {
+      expect(editor.activeTab).toBe('fast-routers');
+    });
+
+    it('should switch to semantic-routers tab', () => {
+      editor.activeTab = 'semantic-routers';
+      expect(editor.activeTab).toBe('semantic-routers');
+    });
+
+    it('should switch to providers tab', () => {
+      editor.activeTab = 'providers';
+      expect(editor.activeTab).toBe('providers');
+    });
+
+    it('should switch to system tab', () => {
+      editor.activeTab = 'system';
+      expect(editor.activeTab).toBe('system');
+    });
+  });
+
+  describe('router schemas', () => {
+    it('should fetch router schemas on load', async () => {
+      const mockConfig = {
+        providers: { local: { url: 'http://localhost:11434' } },
+        defaults: { embedding_provider: 'local' },
+      };
+      const mockSchemas = {
+        quick: {
+          patterns: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                pattern: { type: 'string', label: 'Pattern (regex)' },
+                response: { type: 'string', label: 'Response' }
+              }
+            }
+          }
+        }
+      };
+      
+      mockClient.getConfig.mockResolvedValue(mockConfig);
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => mockSchemas
+      });
+
+      await editor.loadConfig();
+
+      expect(editor.routerSchemas).toEqual(mockSchemas);
+    });
+
+    it('should infer structured-array type from schema', () => {
+      editor.routerSchemas = {
+        quick: {
+          patterns: {
+            type: 'array',
+            items: { type: 'object' }
+          }
+        }
+      };
+
+      const type = editor.inferPropertyType('quick', 'patterns', []);
+      expect(type).toBe('structured-array');
+    });
+
+    it('should fallback to array type when no schema', () => {
+      editor.routerSchemas = {};
+      const type = editor.inferPropertyType('unknown', 'items', []);
+      expect(type).toBe('array');
     });
   });
 });

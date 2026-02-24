@@ -14,7 +14,7 @@ ClawLayer provides a **simple YAML-driven configuration** to route OpenClaw agen
 
 **Key Benefits:**
 - ⚡ **Quick Response**: Zero-latency routing for commands, ~100ms for semantic matching vs 2-5s LLM inference
-- 💰 **Cost Savings**: Route 80% of requests through cheap models, 15% through mid-tier, 5% to expensive LLM
+- 💰 **Cost Savings**: Real-time cost tracking shows actual savings vs always using expensive LLM
 - 🔍 **Deep Observability**: Inspect full agent-LLM communication (prompts, context, responses) via web UI
 - 🛡️ **Security Guardrails**: Monitor and analyze all requests/responses for security compliance
 - 🐛 **Development & Troubleshooting**: Understand OpenClaw's behavior, debug issues, optimize workflows
@@ -34,7 +34,7 @@ See [Architecture](docs/ARCHITECTURE.md) for detailed system design and performa
 - **Streaming Support**: Full SSE streaming for both static and proxied responses
 
 ### Why ClawLayer?
-- **Lightweight**: ~500 lines of core code, minimal dependencies
+- **Lightweight**: ~1800 lines total, minimal dependencies, simple architecture
 - **Easy to Configure**: Add new routes by editing YAML, no Python required
 - **Highly Customizable**: 
   - Adjust confidence thresholds per stage
@@ -167,6 +167,31 @@ python run.py -vvvv
 
 # Run tests
 python -m unittest tests.test_clawlayer -v
+```
+
+### Cost Tracking
+
+ClawLayer automatically tracks cost savings in real-time:
+
+- **Fast routers** (quick/echo/command): $0.00 - zero cost, instant responses
+- **Semantic routers** (embedding-based): ~$0.02/1M tokens - cheap similarity matching
+- **LLM fallback**: ~$0.50/1M tokens - full inference when needed
+
+View cost savings via:
+- **Web UI**: http://localhost:3000 - see total savings and request distribution
+- **API**: `GET /api/stats` - returns `cost_saved` and `distribution` percentages
+
+Example stats response:
+```json
+{
+  "requests": 1000,
+  "cost_saved": 0.0234,
+  "distribution": {
+    "fast_pct": 75.0,
+    "semantic_pct": 20.0,
+    "llm_pct": 5.0
+  }
+}
 ```
 
 ### Production vs Development

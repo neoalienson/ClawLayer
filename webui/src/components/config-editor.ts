@@ -15,8 +15,13 @@ export class ConfigEditor extends LitElement {
     input, select, textarea { width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; box-sizing: border-box; }
     input:focus, select:focus { outline: none; border-color: #3498db; }
     .provider-item { border: 1px solid #ecf0f1; border-radius: 4px; padding: 1rem; margin-bottom: 1rem; }
-    .provider-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-    .provider-name { font-weight: 600; color: #2c3e50; }
+    .provider-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; cursor: pointer; }
+    .provider-header:hover { background: #f8f9fa; }
+    .provider-name { font-weight: 600; color: #2c3e50; display: flex; align-items: center; gap: 0.5rem; }
+    .collapse-icon { transition: transform 0.2s; }
+    .collapse-icon.collapsed { transform: rotate(-90deg); }
+    .provider-content { overflow: hidden; transition: max-height 0.3s ease; }
+    .provider-content.collapsed { display: none; }
     .remove-btn { background: #e74c3c; color: white; border: none; padding: 0.25rem 0.5rem; border-radius: 4px; cursor: pointer; font-size: 12px; }
     .add-btn { background: #27ae60; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; margin-top: 1rem; }
     .actions { margin-top: 2rem; display: flex; gap: 1rem; }
@@ -48,6 +53,10 @@ export class ConfigEditor extends LitElement {
     .view-toggle { display: flex; gap: 0.5rem; margin-bottom: 2rem; }
     .toggle-btn { padding: 0.5rem 1rem; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 4px; }
     .toggle-btn.active { background: #3498db; color: white; border-color: #3498db; }
+    .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 2px solid #ecf0f1; }
+    .tab { padding: 0.75rem 1.5rem; background: none; border: none; cursor: pointer; font-size: 14px; font-weight: 500; color: #7f8c8d; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+    .tab.active { color: #3498db; border-bottom-color: #3498db; }
+    .tab:hover { color: #2c3e50; }
     .yaml-editor { width: 100%; height: 500px; font-family: 'Courier New', monospace; font-size: 14px; padding: 1rem; border: 1px solid #ddd; border-radius: 4px; }
   `;
   
@@ -56,6 +65,9 @@ export class ConfigEditor extends LitElement {
   @state() messageType: 'success' | 'error' | '' = '';
   @state() viewMode: 'ui' | 'yaml' = 'ui';
   @state() yamlContent = '';
+  @state() collapsedProviders: Set<string> = new Set();
+  @state() activeTab: 'fast-routers' | 'semantic-routers' | 'providers' | 'system' = 'fast-routers';
+  @state() routerSchemas: Record<string, any> = {};
   
   private client = new ClawLayerClient();
   
@@ -68,6 +80,10 @@ export class ConfigEditor extends LitElement {
     try {
       this.config = await this.client.getConfig();
       this.yamlContent = this.configToYaml(this.config);
+      this.collapsedProviders = new Set(Object.keys(this.config.providers || {}));
+      
+      const schemasRes = await fetch('/api/router-schemas');
+      this.routerSchemas = await schemasRes.json();
     } catch (e) {
       this.showMessage('Failed to load config', 'error');
     }
@@ -128,6 +144,15 @@ export class ConfigEditor extends LitElement {
       };
       this.requestUpdate();
     }
+  }
+  
+  toggleProvider(name: string) {
+    if (this.collapsedProviders.has(name)) {
+      this.collapsedProviders.delete(name);
+    } else {
+      this.collapsedProviders.add(name);
+    }
+    this.requestUpdate();
   }
   
   removeProvider(name: string) {
@@ -248,6 +273,29 @@ export class ConfigEditor extends LitElement {
   
   removeRouterProperty(type: string, routerName: string, key: string) {
     delete this.config.routers[type][routerName][key];
+    this.requestUpdate();
+  }
+  
+  inferPropertyType(routerName: string, propKey: string, value: any): string {
+    const schema = this.routerSchemas[routerName]?.[propKey];
+    if (schema?.type === 'array' && schema?.items?.type === 'object') {
+      return 'structured-array';
+    }
+    if (Array.isArray(value)) {
+      return 'array';
+    }
+    if (typeof value === 'object' && value !== null) {
+      return 'object';
+    }
+    return 'primitive';
+  }
+  
+  addArrayItem(type: string, routerName: string, key: string, template: any) {
+    const currentValue = this.config.routers[type][routerName][key];
+    if (!Array.isArray(currentValue)) {
+      this.config.routers[type][routerName][key] = [];
+    }
+    this.config.routers[type][routerName][key].push(template);
     this.requestUpdate();
   }
   
@@ -380,6 +428,19 @@ export class ConfigEditor extends LitElement {
                 @click=${() => this.switchView('yaml')}>YAML Editor</button>
       </div>
       
+      ${this.viewMode === 'ui' ? html`
+        <div class="tabs">
+          <button class="tab ${this.activeTab === 'fast-routers' ? 'active' : ''}" 
+                  @click=${() => this.activeTab = 'fast-routers'}>Fast Routers</button>
+          <button class="tab ${this.activeTab === 'semantic-routers' ? 'active' : ''}" 
+                  @click=${() => this.activeTab = 'semantic-routers'}>Semantic Routers</button>
+          <button class="tab ${this.activeTab === 'providers' ? 'active' : ''}" 
+                  @click=${() => this.activeTab = 'providers'}>Providers</button>
+          <button class="tab ${this.activeTab === 'system' ? 'active' : ''}" 
+                  @click=${() => this.activeTab = 'system'}>System</button>
+        </div>
+      ` : ''}
+      
       ${this.viewMode === 'ui' ? this.renderUIEditor() : this.renderYAMLEditor()}
       
       <div class="actions">
@@ -403,41 +464,67 @@ export class ConfigEditor extends LitElement {
   }
   
   renderUIEditor() {
-    const providers = this.config.providers || {};
-    const defaults = this.config.defaults || {};
+    if (this.activeTab === 'fast-routers') {
+      return this.renderFastRoutersTab();
+    } else if (this.activeTab === 'semantic-routers') {
+      return this.renderSemanticRoutersTab();
+    } else if (this.activeTab === 'providers') {
+      return this.renderProvidersTab();
+    } else {
+      return this.renderSystemTab();
+    }
+  }
+  
+  renderSystemTab() {
     const server = this.config.server || {};
-    const routers = this.config.routers || {};
-    
-    console.log('Defaults:', defaults); // Debug log
-    
     return html`
-      
-      <!-- Server Configuration -->
       <div class="section">
-        <h2>Server</h2>
+        <h2>Server Configuration</h2>
         <div class="form-group">
           <label>Port</label>
           <input type="number" .value=${server.port || 11435} 
                  @input=${(e: any) => this.updateServer('port', parseInt(e.target.value))}>
         </div>
       </div>
-      
-      <!-- Providers Configuration -->
+    `;
+  }
+  
+  renderProvidersTab() {
+    const providers = this.config.providers || {};
+    const defaults = this.config.defaults || {};
+    return html`
       <div class="section">
         <h2>Providers</h2>
-        ${Object.entries(providers).map(([name, provider]: [string, any]) => html`
+        ${Object.entries(providers).map(([name, provider]: [string, any]) => {
+          const isCollapsed = this.collapsedProviders.has(name);
+          return html`
           <div class="provider-item">
-            <div class="provider-header">
-              <span class="provider-name">${name}</span>
-              <button class="remove-btn" @click=${() => this.removeProvider(name)}>Remove</button>
+            <div class="provider-header" @click=${() => this.toggleProvider(name)}>
+              <span class="provider-name">
+                <span class="collapse-icon ${isCollapsed ? 'collapsed' : ''}">▼</span>
+                ${name}
+              </span>
             </div>
             
+            <div class="provider-content ${isCollapsed ? 'collapsed' : ''}">
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+              <button class="remove-btn" @click=${() => this.removeProvider(name)}>Remove Provider</button>
+            </div>
             <div class="provider-row">
               <div class="form-group">
                 <label>URL</label>
                 <input .value=${provider.url || ''} 
                        @input=${(e: any) => this.updateProvider(name, 'url', e.target.value)}>
               </div>
+              <div class="form-group">
+                <label>API Key</label>
+                <input type="password" .value=${provider.api_key || ''} 
+                       placeholder="Optional" 
+                       @input=${(e: any) => this.updateProvider(name, 'api_key', e.target.value)}>
+              </div>
+            </div>
+            
+            <div class="provider-row">
               <div class="form-group">
                 <label>Type</label>
                 <select .value=${provider.type || 'ollama'} 
@@ -446,15 +533,14 @@ export class ConfigEditor extends LitElement {
                   <option value="openai">OpenAI</option>
                 </select>
               </div>
-            </div>
-            
-            <div class="form-group">
-              <label>Provider Type</label>
-              <select .value=${provider.provider_type || 'embedding'} 
-                      @change=${(e: any) => this.updateProvider(name, 'provider_type', e.target.value)}>
-                <option value="embedding">Embedding</option>
-                <option value="llm">LLM</option>
-              </select>
+              <div class="form-group">
+                <label>Provider Type</label>
+                <select .value=${provider.provider_type || 'embedding'} 
+                        @change=${(e: any) => this.updateProvider(name, 'provider_type', e.target.value)}>
+                  <option value="embedding">Embedding</option>
+                  <option value="llm">LLM</option>
+                </select>
+              </div>
             </div>
             
             <div class="form-group">
@@ -483,8 +569,9 @@ export class ConfigEditor extends LitElement {
                 <label>Capabilities</label>
                 <div class="form-row">
                   <div>
-                    <label>Max Context</label>
+                    <label>Context Window</label>
                     <input type="number" .value=${provider.capabilities.max_context || ''} 
+                           placeholder="e.g. 131072"
                            @input=${(e: any) => this.updateProviderCapability(name, 'max_context', parseInt(e.target.value))}>
                   </div>
                   <div>
@@ -497,13 +584,20 @@ export class ConfigEditor extends LitElement {
                   </div>
                 </div>
               </div>
-            ` : ''}
+            ` : html`
+              <div class="form-group">
+                <label>Context Window</label>
+                <input type="number" .value=${''} 
+                       placeholder="e.g. 131072 (optional)"
+                       @input=${(e: any) => this.updateProviderCapability(name, 'max_context', parseInt(e.target.value))}>
+              </div>
+            `}
+            </div>
           </div>
-        `)}
+        `})}}
         <button class="add-btn" @click=${this.addProvider}>Add Provider</button>
       </div>
       
-      <!-- Default Assignments -->
       <div class="section">
         <h2>Default Provider Assignments</h2>
         <div class="form-row">
@@ -530,12 +624,17 @@ export class ConfigEditor extends LitElement {
           </select>
         </div>
       </div>
-      
-      <!-- Router Configuration -->
+    `;
+  }
+  
+  renderFastRoutersTab() {
+    const routers = this.config.routers || {};
+    return html`
       <div class="section">
-        <h2>Routers</h2>
-        
-        <h3>Fast Routers</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h2 style="margin: 0;">Fast Routers</h2>
+          <button class="add-btn" style="margin: 0;" @click=${this.addFastRouter}>Add Fast Router</button>
+        </div>
         <div class="router-priority">
           ${(Array.isArray(routers.fast?.priority) ? routers.fast.priority : ['echo', 'command']).map((name: string, index: number) => html`
             <div class="draggable">
@@ -555,24 +654,77 @@ export class ConfigEditor extends LitElement {
               </div>
               <div>
                 <h4>Properties</h4>
-                ${Object.entries(routers.fast?.[name] || {}).filter(([key]) => key !== 'enabled').map(([key, value]) => html`
+                ${Object.entries(routers.fast?.[name] || {}).filter(([key]) => key !== 'enabled').map(([key, value]) => {
+                  const propType = this.inferPropertyType(name, key, value);
+                  const schema = this.routerSchemas[name]?.[key];
+                  return html`
                   <div class="form-group">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                       <label>${key}</label>
                       <button class="remove-btn" @click=${() => this.removeRouterProperty('fast', name, key)}>Remove</button>
                     </div>
-                    <input .value=${value || ''} 
-                           @input=${(e: any) => this.updateRouter('fast', name, key, e.target.value)}>
+                    ${propType === 'structured-array' ? html`
+                      ${(value || []).map((item: any, i: number) => html`
+                        <div class="stage-card">
+                          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <span>Item ${i + 1}</span>
+                            <button class="remove-btn" @click=${() => {
+                              this.config.routers.fast[name][key].splice(i, 1);
+                              this.requestUpdate();
+                            }}>Remove</button>
+                          </div>
+                          ${Object.entries(schema?.items?.properties || {}).map(([field, fieldSchema]: [string, any]) => html`
+                            <div class="form-group">
+                              <label>${fieldSchema.label || field}</label>
+                              ${field === 'response' ? html`
+                                <textarea .value=${item[field] || ''} 
+                                          @input=${(e: any) => {
+                                            this.config.routers.fast[name][key][i][field] = e.target.value;
+                                            this.requestUpdate();
+                                          }}></textarea>
+                              ` : html`
+                                <input .value=${item[field] || ''} 
+                                       @input=${(e: any) => {
+                                         this.config.routers.fast[name][key][i][field] = e.target.value;
+                                         this.requestUpdate();
+                                       }}>
+                              `}
+                            </div>
+                          `)}
+                        </div>
+                      `)}
+                      <button class="add-btn" @click=${() => this.addArrayItem('fast', name, key, {})}>Add Item</button>
+                    ` : propType === 'array' ? html`
+                      <textarea .value=${JSON.stringify(value, null, 2)} 
+                                @input=${(e: any) => {
+                                  try {
+                                    this.updateRouter('fast', name, key, JSON.parse(e.target.value));
+                                  } catch {}
+                                }}></textarea>
+                    ` : html`
+                      <input .value=${typeof value === 'object' ? JSON.stringify(value) : value || ''} 
+                             @input=${(e: any) => this.updateRouter('fast', name, key, e.target.value)}>
+                    `}
                   </div>
-                `)}
+                `})}}
                 <button class="add-btn" @click=${() => this.addRouterProperty('fast', name)}>Add Property</button>
               </div>
             </div>
           `)}}
         </div>
-        <button class="add-btn" @click=${this.addFastRouter}>Add Fast Router</button>
-        
-        <h3>Semantic Routers</h3>
+      </div>
+    `;
+  }
+  
+  renderSemanticRoutersTab() {
+    const providers = this.config.providers || {};
+    const routers = this.config.routers || {};
+    return html`
+      <div class="section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h2 style="margin: 0;">Semantic Routers</h2>
+          <button class="add-btn" style="margin: 0;" @click=${this.addSemanticRouter}>Add Semantic Router</button>
+        </div>
         <div class="router-priority">
           ${(Array.isArray(routers.semantic?.priority) ? routers.semantic.priority : ['greeting', 'summarize']).map((name: string, index: number) => html`
             <div class="draggable">
@@ -630,7 +782,6 @@ export class ConfigEditor extends LitElement {
             </div>
           `)}
         </div>
-        <button class="add-btn" @click=${this.addSemanticRouter}>Add Semantic Router</button>
       </div>
     `;
   }

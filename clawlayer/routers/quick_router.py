@@ -9,6 +9,19 @@ from clawlayer.routers import Router, RouteResult
 class QuickRouter(Router):
     """Quick router using regex patterns."""
     
+    SCHEMA = {
+        'patterns': {
+            'type': 'array',
+            'items': {
+                'type': 'object',
+                'properties': {
+                    'pattern': {'type': 'string', 'label': 'Pattern (regex)'},
+                    'response': {'type': 'string', 'label': 'Response'}
+                }
+            }
+        }
+    }
+    
     def __init__(self, router_config=None):
         """Initialize with router config.
         

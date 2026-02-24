@@ -9,6 +9,12 @@ export interface Stats {
   router_hits: Record<string, number>;
   avg_latency: number;
   uptime: number;
+  cost_saved?: number;
+  distribution?: {
+    fast_pct: number;
+    semantic_pct: number;
+    llm_pct: number;
+  };
 }
 
 export interface Router {
