@@ -1,23 +1,11 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, unsafeCSS } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { ClawLayerClient, Stats, Router } from '../api/clawlayer-client';
+import dashboardStyles from '../styles/dashboard.css?inline';
 
 @customElement('cl-dashboard')
 export class Dashboard extends LitElement {
-  static styles = css`
-    :host { display: block; padding: 2rem; }
-    h1 { margin: 0 0 2rem 0; color: #2c3e50; }
-    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
-    .stat-card { background: #ecf0f1; padding: 1.5rem; border-radius: 8px; }
-    .stat-label { font-size: 0.875rem; color: #7f8c8d; margin-bottom: 0.5rem; }
-    .stat-value { font-size: 2rem; font-weight: bold; color: #2c3e50; }
-    .router-chain { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    .router-chain h2 { margin: 0 0 1rem 0; color: #2c3e50; }
-    .router-list { display: flex; flex-direction: column; gap: 0.5rem; }
-    .router-item { display: flex; justify-content: space-between; padding: 0.75rem; background: #f8f9fa; border-radius: 4px; }
-    .router-name { font-weight: 500; }
-    .router-hits { color: #7f8c8d; }
-  `;
+  static styles = css`${unsafeCSS(dashboardStyles)}`;
   
   @state() stats: Stats = { 
     requests: 0, 

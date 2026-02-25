@@ -158,32 +158,28 @@ describe('ConfigEditor', () => {
   describe('moveRouter', () => {
     it('should move router up in priority', () => {
       editor.config = {
-        routers: {
-          handlers: {
-            priority: ['echo', 'command'],
-          },
+        handlers: {
+          priority: ['echo', 'command'],
         },
       };
       const requestUpdateSpy = vi.spyOn(editor, 'requestUpdate');
 
       editor.moveRouter('handlers', 1, -1);
 
-      expect(editor.config.routers.handlers.priority).toEqual(['command', 'echo']);
+      expect(editor.config.handlers.priority).toEqual(['command', 'echo']);
       expect(requestUpdateSpy).toHaveBeenCalled();
     });
 
     it('should not move router beyond bounds', () => {
       editor.config = {
-        routers: {
-          handlers: {
-            priority: ['echo', 'command'],
-          },
+        handlers: {
+          priority: ['echo', 'command'],
         },
       };
 
       editor.moveRouter('handlers', 0, -1);
 
-      expect(editor.config.routers.handlers.priority).toEqual(['echo', 'command']);
+      expect(editor.config.handlers.priority).toEqual(['echo', 'command']);
     });
   });
 
@@ -237,10 +233,8 @@ describe('ConfigEditor', () => {
   describe('addRouterProperty', () => {
     it('should add property to router', () => {
       editor.config = {
-        routers: {
-          handlers: {
-            command: { enabled: true },
-          },
+        handlers: {
+          command: { enabled: true },
         },
       };
       vi.spyOn(window, 'prompt')
@@ -257,17 +251,15 @@ describe('ConfigEditor', () => {
   describe('removeRouterProperty', () => {
     it('should remove property from router', () => {
       editor.config = {
-        routers: {
-          handlers: {
-            command: { enabled: true, prefix: 'run:' },
-          },
+        handlers: {
+          command: { enabled: true, prefix: 'run:' },
         },
       };
       const requestUpdateSpy = vi.spyOn(editor, 'requestUpdate');
 
       editor.removeRouterProperty('handlers', 'command', 'prefix');
 
-      expect(editor.config.routers.handlers.command.prefix).toBeUndefined();
+      expect(editor.config.handlers.command.prefix).toBeUndefined();
       expect(requestUpdateSpy).toHaveBeenCalled();
     });
   });
@@ -377,6 +369,128 @@ describe('ConfigEditor', () => {
       editor.routerSchemas = {};
       const type = editor.inferPropertyType('unknown', 'items', []);
       expect(type).toBe('array');
+    });
+  });
+
+  describe('view switching', () => {
+    it('should switch from UI to YAML editor', () => {
+      editor.config = { handlers: { priority: ['quick'] }, providers: {} };
+      editor.viewMode = 'ui';
+
+      editor.switchView('yaml');
+
+      expect(editor.viewMode).toBe('yaml');
+      expect(editor.yamlContent).toContain('handlers');
+    });
+
+    it('should reload config when switching from YAML to UI', async () => {
+      const mockConfig = {
+        handlers: { priority: ['quick', 'echo'], quick: { enabled: true } },
+        providers: {}
+      };
+      mockClient.getConfig.mockResolvedValue(mockConfig);
+      global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
+      
+      editor.viewMode = 'yaml';
+      editor.yamlContent = 'handlers:\n  priority: []';
+
+      await editor.switchView('ui');
+      // Wait for loadConfig to complete
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      expect(editor.viewMode).toBe('ui');
+      expect(mockClient.getConfig).toHaveBeenCalled();
+      expect(editor.config.handlers.priority).toEqual(['quick', 'echo']);
+    });
+
+    it('should preserve handlers structure when switching views', async () => {
+      const mockConfig = {
+        handlers: {
+          priority: ['quick'],
+          quick: { enabled: true, patterns: [{ pattern: 'test', response: 'ok' }] }
+        },
+        providers: {}
+      };
+      mockClient.getConfig.mockResolvedValue(mockConfig);
+      global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
+
+      editor.viewMode = 'yaml';
+      await editor.switchView('ui');
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      expect(editor.config.handlers).toBeDefined();
+      expect(editor.config.handlers.quick).toBeDefined();
+      expect(editor.config.handlers.quick.patterns).toBeDefined();
+    });
+  });
+
+  describe('priority validation', () => {
+    it('should reconstruct missing handlers priority on load', async () => {
+      const mockConfig = {
+        providers: {},
+        handlers: {
+          priority: [],
+          quick: { enabled: true },
+          echo: { enabled: true }
+        }
+      };
+      mockClient.getConfig.mockResolvedValue(mockConfig);
+      global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
+
+      await editor.loadConfig();
+
+      expect(editor.config.handlers.priority).toEqual(['quick', 'echo']);
+    });
+
+    it('should reconstruct missing semantic priority on load', async () => {
+      const mockConfig = {
+        providers: {},
+        routers: {
+          semantic: {
+            priority: ['greeting'],
+            greeting: { enabled: true },
+            summarize: { enabled: true }
+          }
+        }
+      };
+      mockClient.getConfig.mockResolvedValue(mockConfig);
+      global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
+
+      await editor.loadConfig();
+
+      expect(editor.config.routers.semantic.priority).toEqual(['greeting', 'summarize']);
+    });
+
+    it('should fix corrupt priority (not an array) on load', async () => {
+      const mockConfig = {
+        providers: {},
+        handlers: {
+          priority: null,
+          quick: { enabled: true }
+        }
+      };
+      mockClient.getConfig.mockResolvedValue(mockConfig);
+      global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
+
+      await editor.loadConfig();
+
+      expect(Array.isArray(editor.config.handlers.priority)).toBe(true);
+      expect(editor.config.handlers.priority).toEqual(['quick']);
+    });
+
+    it('should validate priority before save', async () => {
+      editor.config = {
+        handlers: {
+          priority: [],
+          command: { enabled: true }
+        }
+      };
+      mockClient.saveConfig.mockResolvedValue({ status: 'saved' });
+
+      await editor.save();
+
+      expect(editor.config.handlers.priority).toEqual(['command']);
+      expect(mockClient.saveConfig).toHaveBeenCalled();
     });
   });
 });

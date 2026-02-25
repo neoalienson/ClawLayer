@@ -122,8 +122,8 @@ class Config:
         # Parse router configs
         routers_config = data.get('routers', {})
         
-        # Get handlers and semantic router priorities
-        handlers_config = routers_config.get('handlers', routers_config.get('fast', {}))
+        # Get handlers from root level (new structure) or routers.handlers (legacy)
+        handlers_config = data.get('handlers', routers_config.get('handlers', routers_config.get('fast', {})))
         semantic_config = routers_config.get('semantic', {})
         
         handlers_priority = handlers_config.get('priority', ['echo', 'command'])
