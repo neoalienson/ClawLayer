@@ -8,6 +8,7 @@ flowchart TB
     CL[ClawLayer]
     
     subgraph Handlers["⚡ Handlers (regex/logic)"]
+        Quick[QuickHandler<br/>regex patterns]
         Echo[EchoHandler<br/>role=tool check]
         Cmd[CommandHandler<br/>run: prefix]
     end
@@ -26,6 +27,8 @@ flowchart TB
     
     Agent -->|Request| CL
     CL --> Handlers
+    Quick -->|Match| CL
+    Quick -->|No Match| Echo
     Echo -->|Match| CL
     Echo -->|No Match| Cmd
     Cmd -->|Match| CL
@@ -50,6 +53,7 @@ flowchart TB
     style Handlers fill:#E8F5E9
     style Semantic fill:#FFF9C4
     style Cascade fill:#E3F2FD
+    style Quick fill:#90EE90
     style Echo fill:#90EE90
     style Cmd fill:#90EE90
     style Greet fill:#FFD700
@@ -68,17 +72,18 @@ flowchart TB
 Routers are organized into two categories, each with its own priority:
 
 ### Handlers (checked first)
-1. **EchoHandler** - Detects tool execution results (role=tool, function=exec) - 🟢 Instant
-2. **CommandHandler** - Detects "run:" prefix for command execution - 🟢 Instant (regex)
+1. **QuickHandler** - Regex pattern matching for instant responses (greetings, summaries) - 🟢 Instant
+2. **EchoHandler** - Detects tool execution results (role=tool, function=exec) - 🟢 Instant
+3. **CommandHandler** - Detects "run:" prefix for command execution - 🟢 Instant (regex)
 
 These handlers use pattern matching and logic checks for **zero-latency routing** - no embedding or LLM inference required.
 
 ### Semantic Routers (checked after handlers)
-3. **GreetingRouter** - Semantic similarity matching for greetings - 🟡 ~100ms (embedding)
-4. **SummarizeRouter** - Semantic similarity for summary requests - 🟡 ~100ms (embedding)
+4. **GreetingRouter** - Semantic similarity matching for greetings - 🟡 ~100ms (embedding)
+5. **SummarizeRouter** - Semantic similarity for summary requests - 🟡 ~100ms (embedding)
 
 ### Fallback
-5. **LLM Proxy** - Forwards to LLM for everything else - 🔴 2-5s (full inference)
+6. **LLM Proxy** - Forwards to LLM for everything else - 🔴 2-5s (full inference)
 
 ## Speed Optimization
 
